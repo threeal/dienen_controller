@@ -28,7 +28,9 @@
 #include <tosshin_interfaces/srv/configure_maneuver.hpp>
 
 #include <arpa/inet.h>
+
 #include <memory>
+#include <string>
 
 namespace tosshin
 {
@@ -41,7 +43,11 @@ using ConfigureManeuver = tosshin_interfaces::srv::ConfigureManeuver;
 class Navigation : public rclcpp::Node
 {
 public:
-  Navigation(std::string node_name, const char * server_ip, int server_port, const char * client_ip, int client_port);
+  Navigation(
+    std::string node_name, const char * server_ip, int server_port,
+    const char * client_ip, int client_port
+  );
+
   ~Navigation();
 
   bool connect();

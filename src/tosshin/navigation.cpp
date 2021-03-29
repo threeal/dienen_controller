@@ -23,12 +23,17 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <string>
+
 namespace tosshin
 {
 
 using namespace std::chrono_literals;
 
-Navigation::Navigation(std::string node_name, const char * server_ip, int server_port, const char * client_ip, int client_port)
+Navigation::Navigation(
+  std::string node_name, const char * server_ip, int server_port,
+  const char * client_ip, int client_port
+)
 : rclcpp::Node(node_name),
   initial_x_position(nullptr),
   initial_y_position(nullptr),
@@ -38,33 +43,47 @@ Navigation::Navigation(std::string node_name, const char * server_ip, int server
   yaw_maneuver(0.0),
   sockfd(-1)
 {
-
   // Initialize the node
   {
     RCLCPP_INFO_STREAM(get_logger(), "Node initialized with name " << get_name() << "!");
 
     // Initialize the position publisher
     {
-      position_publisher = create_publisher<Position>(std::string(get_name()) + "/position", 10);
+      position_publisher = create_publisher<Position>(
+        std::string(get_name()) + "/position", 10
+      );
 
-      RCLCPP_INFO_STREAM(get_logger(),
-        "Position publisher initialized on " << position_publisher->get_topic_name() << "!");
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Position publisher initialized on " <<
+          position_publisher->get_topic_name() << "!"
+      );
     }
 
     // Initialize the orientation publisher
     {
-      orientation_publisher = create_publisher<Orientation>(std::string(get_name()) + "/orientation", 10);
+      orientation_publisher = create_publisher<Orientation>(
+        std::string(get_name()) + "/orientation", 10
+      );
 
-      RCLCPP_INFO_STREAM(get_logger(),
-        "Orientation publisher initialized on " << orientation_publisher->get_topic_name() << "!");
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Orientation publisher initialized on " <<
+          orientation_publisher->get_topic_name() << "!"
+      );
     }
 
     // Initialize the maneuver event publisher
     {
-      maneuver_event_publisher = create_publisher<Maneuver>(std::string(get_name()) + "/maneuver_event", 10);
+      maneuver_event_publisher = create_publisher<Maneuver>(
+        std::string(get_name()) + "/maneuver_event", 10
+      );
 
-      RCLCPP_INFO_STREAM(get_logger(),
-        "Maneuver event publisher initialized on " << maneuver_event_publisher->get_topic_name() << "!");
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Maneuver event publisher initialized on " <<
+          maneuver_event_publisher->get_topic_name() << "!"
+      );
     }
 
     // Initialize the maneuver input subscription
@@ -76,8 +95,11 @@ Navigation::Navigation(std::string node_name, const char * server_ip, int server
         }
       );
 
-      RCLCPP_INFO_STREAM(get_logger(),
-        "Maneuver input subscription initialized on " << maneuver_input_subscription->get_topic_name() << "!");
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Maneuver input subscription initialized on " <<
+          maneuver_input_subscription->get_topic_name() << "!"
+      );
     }
 
     // Initialize the configure maneuver service
@@ -90,21 +112,24 @@ Navigation::Navigation(std::string node_name, const char * server_ip, int server
         }
       );
 
-      RCLCPP_INFO_STREAM(get_logger(),
-        "Configure maneuver service initialized on " << configure_maneuver_service->get_service_name() << "!");
+      RCLCPP_INFO_STREAM(
+        get_logger(),
+        "Configure maneuver service initialized on " <<
+          configure_maneuver_service->get_service_name() << "!"
+      );
     }
   }
 
   // Initialize the TCP addresses
   {
-    memset((char *)&server_addr, 0, sizeof(server_addr));
+    memset(reinterpret_cast<char *>(&server_addr), 0, sizeof(server_addr));
 
     inet_aton(server_ip, &server_addr.sin_addr);
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(server_port);
 
-    memset((char *)&client_addr, 0, sizeof(client_addr));
+    memset(reinterpret_cast<char *>(&client_addr), 0, sizeof(client_addr));
 
     inet_aton(client_ip, &client_addr.sin_addr);
 
@@ -164,8 +189,7 @@ bool Navigation::connect()
               }
             }
 
-            if (buffer[0] == 'p' && buffer[1] == 's' && buffer[2] == 'i')
-            {
+            if (buffer[0] == 'p' && buffer[1] == 's' && buffer[2] == 'i') {
               float x_position;
               memcpy(&x_position, buffer + 3, 4);
 
@@ -246,7 +270,11 @@ Maneuver Navigation::configure_maneuver(const Maneuver & maneuver)
     result.forward.push_back(forward_maneuver);
 
     configured = true;
-    RCLCPP_DEBUG_STREAM(get_logger(), "Forward maneuver configured into " << forward_maneuver << "!");
+    RCLCPP_DEBUG_STREAM(
+      get_logger(),
+      "Forward maneuver configured into " <<
+        forward_maneuver << "!"
+    );
   }
 
   if (maneuver.left.size() > 0) {
@@ -254,7 +282,11 @@ Maneuver Navigation::configure_maneuver(const Maneuver & maneuver)
     result.left.push_back(left_maneuver);
 
     configured = true;
-    RCLCPP_DEBUG_STREAM(get_logger(), "Left maneuver configured into " << left_maneuver << "!");
+    RCLCPP_DEBUG_STREAM(
+      get_logger(),
+      "Left maneuver configured into " <<
+        left_maneuver << "!"
+    );
   }
 
   if (maneuver.yaw.size() > 0) {
@@ -262,7 +294,11 @@ Maneuver Navigation::configure_maneuver(const Maneuver & maneuver)
     result.yaw.push_back(yaw_maneuver);
 
     configured = true;
-    RCLCPP_DEBUG_STREAM(get_logger(), "Yaw maneuver configured into " << yaw_maneuver << "!");
+    RCLCPP_DEBUG_STREAM(
+      get_logger(),
+      "Yaw maneuver configured into " <<
+        yaw_maneuver << "!"
+    );
   }
 
   if (configured) {
