@@ -66,9 +66,9 @@ private:
 
   rclcpp::TimerBase::SharedPtr update_timer;
 
-  double * initial_x_position;
-  double * initial_y_position;
-  double * initial_yaw_orientation;
+  std::shared_ptr<double> initial_x_position;
+  std::shared_ptr<double> initial_y_position;
+  std::shared_ptr<double> initial_yaw_orientation;
 
   double forward_maneuver;
   double left_maneuver;

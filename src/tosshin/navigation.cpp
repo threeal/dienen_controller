@@ -23,12 +23,16 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace tosshin
 {
 
 using namespace std::chrono_literals;
+
+const double PI = atan(1) * 4;
 
 Navigation::Navigation(
   std::string node_name, const char * server_ip, int server_port,
@@ -164,15 +168,23 @@ bool Navigation::connect()
       1ms, [this]() {
         // Receive process
         {
-          char buffer[512];
+          char buffer[64];
           socklen_t slen = sizeof(client_addr);
 
-          int received = recvfrom(sockfd, buffer, 512, 0, (struct sockaddr *)&client_addr, &slen);
+          int received = recvfrom(sockfd, buffer, 64, 0, (struct sockaddr *)&client_addr, &slen);
 
           if (received > 0) {
-            if (buffer[0] == 'i' && buffer[1] == 't' && buffer[2] == 's') {
-              float yaw_orientation;
-              memcpy(&yaw_orientation, buffer + 3, 4);
+            std::vector<std::string> data;
+
+            std::stringstream ss(buffer);
+            while (ss.good()) {
+              std::string substr;
+              std::getline(ss, substr, ',');
+              data.push_back(substr);
+            }
+
+            if (data.size() >= 2) {
+              double yaw_orientation = stod(data[2]);
 
               // Publish current orientation
               {
@@ -180,41 +192,48 @@ bool Navigation::connect()
                 orientation.yaw = 0.0;
 
                 if (initial_yaw_orientation == nullptr) {
-                  *initial_yaw_orientation = orientation.yaw;
+                  initial_yaw_orientation = std::make_shared<double>(yaw_orientation);
                 } else {
                   orientation.yaw = yaw_orientation - (*initial_yaw_orientation);
                 }
 
                 orientation_publisher->publish(orientation);
               }
-            }
 
-            if (buffer[0] == 'p' && buffer[1] == 's' && buffer[2] == 'i') {
-              float x_position;
-              memcpy(&x_position, buffer + 3, 4);
-
-              float y_position;
-              memcpy(&y_position, buffer + 7, 4);
-
-              // Publish current position
+              // Calculate position
               {
-                Position position;
-                position.x = 0.0;
-                position.y = y_position;
+                int wheel_encoder_a = stoi(data[0]);
+                int wheel_encoder_b = stoi(data[1]);
 
-                if (initial_x_position == nullptr) {
-                  *initial_x_position = position.x;
-                } else {
-                  position.x = x_position - (*initial_x_position);
+                double xa = wheel_encoder_a * cos((yaw_orientation + 45.0) * PI / 180.0);
+                double xb = wheel_encoder_b * cos((yaw_orientation + 135.0) * PI / 180.0);
+
+                double ya = wheel_encoder_a * sin((yaw_orientation + 45.0) * PI / 180.0);
+                double yb = wheel_encoder_b * sin((yaw_orientation + 135.0) * PI / 180.0);
+
+                double x_position = (xa + xb) * 0.0003947368;
+                double y_position = (ya + yb) * 0.0003947368;
+
+                // Publish current position
+                {
+                  Position position;
+                  position.x = 0.0;
+                  position.y = 0.0;
+
+                  if (initial_x_position == nullptr) {
+                    initial_x_position = std::make_shared<double>(x_position);
+                  } else {
+                    position.x = x_position - (*initial_x_position);
+                  }
+
+                  if (initial_y_position == nullptr) {
+                    initial_y_position = std::make_shared<double>(y_position);
+                  } else {
+                    position.y = y_position - (*initial_y_position);
+                  }
+
+                  position_publisher->publish(position);
                 }
-
-                if (initial_y_position == nullptr) {
-                  *initial_y_position = position.y;
-                } else {
-                  position.y = y_position - (*initial_y_position);
-                }
-
-                position_publisher->publish(position);
               }
             }
           }
@@ -222,22 +241,22 @@ bool Navigation::connect()
 
         // Send process
         {
-          char buffer[512];
+          char buffer[9];
 
           buffer[0] = 'i';
           buffer[1] = 't';
           buffer[2] = 's';
 
-          int forward = forward_maneuver;
-          int left = left_maneuver;
-          int yaw = yaw_maneuver;
+          int16_t x = left_maneuver;
+          int16_t y = forward_maneuver;
+          int16_t yaw = yaw_maneuver;
 
-          memcpy(buffer + 3, &forward, 2);
-          memcpy(buffer + 5, &left, 2);
+          memcpy(buffer + 3, &x, 2);
+          memcpy(buffer + 5, &y, 2);
           memcpy(buffer + 7, &yaw, 2);
 
           socklen_t slen = sizeof(client_addr);
-          sendto(sockfd, buffer, 24, 0, (struct sockaddr *)&client_addr, slen);
+          sendto(sockfd, buffer, 9, 0, (struct sockaddr *)&client_addr, slen);
         }
       }
     );
