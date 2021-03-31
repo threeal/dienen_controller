@@ -186,51 +186,64 @@ bool Navigation::connect()
             if (data.size() >= 2) {
               double yaw_orientation = stod(data[2]);
 
+              // Filter current orientation
+              {
+                if (initial_yaw_orientation == nullptr) {
+                  initial_yaw_orientation = std::make_shared<double>(yaw_orientation);
+                }
+
+                yaw_orientation -= *initial_yaw_orientation;
+
+                while (yaw_orientation > 180.0) {
+                  yaw_orientation -= 360.0;
+                }
+
+                while (yaw_orientation < -180.0) {
+                  yaw_orientation += 360.0;
+                }
+              }
+
               // Publish current orientation
               {
                 Orientation orientation;
-                orientation.yaw = 0.0;
-
-                if (initial_yaw_orientation == nullptr) {
-                  initial_yaw_orientation = std::make_shared<double>(yaw_orientation);
-                } else {
-                  orientation.yaw = yaw_orientation - (*initial_yaw_orientation);
-                }
+                orientation.yaw = yaw_orientation;
 
                 orientation_publisher->publish(orientation);
               }
 
-              // Calculate position
+              // Calculate current position
               {
                 int wheel_encoder_a = stoi(data[0]);
                 int wheel_encoder_b = stoi(data[1]);
 
-                double xa = wheel_encoder_a * cos((yaw_orientation + 45.0) * PI / 180.0);
-                double xb = wheel_encoder_b * cos((yaw_orientation + 135.0) * PI / 180.0);
+                double xa = wheel_encoder_a * cos((yaw_orientation + 135.0) * PI / 180.0);
+                double xb = wheel_encoder_b * cos((yaw_orientation + 45.0) * PI / 180.0);
 
-                double ya = wheel_encoder_a * sin((yaw_orientation + 45.0) * PI / 180.0);
-                double yb = wheel_encoder_b * sin((yaw_orientation + 135.0) * PI / 180.0);
+                double ya = wheel_encoder_a * sin((yaw_orientation + 135.0) * PI / 180.0);
+                double yb = wheel_encoder_b * sin((yaw_orientation + 45.0) * PI / 180.0);
 
                 double x_position = (xa + xb) * 0.0003947368;
                 double y_position = (ya + yb) * 0.0003947368;
 
-                // Publish current position
+                // Filter current position
                 {
-                  Position position;
-                  position.x = 0.0;
-                  position.y = 0.0;
-
                   if (initial_x_position == nullptr) {
                     initial_x_position = std::make_shared<double>(x_position);
-                  } else {
-                    position.x = x_position - (*initial_x_position);
                   }
 
                   if (initial_y_position == nullptr) {
                     initial_y_position = std::make_shared<double>(y_position);
-                  } else {
-                    position.y = y_position - (*initial_y_position);
                   }
+
+                  x_position -= *initial_x_position;
+                  y_position -= *initial_y_position;
+                }
+
+                // Publish current position
+                {
+                  Position position;
+                  position.x = x_position;
+                  position.y = y_position;
 
                   position_publisher->publish(position);
                 }
