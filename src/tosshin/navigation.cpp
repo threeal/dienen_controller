@@ -39,9 +39,10 @@ Navigation::Navigation(
   const char * client_ip, int client_port
 )
 : rclcpp::Node(node_name),
-  initial_x_position(nullptr),
-  initial_y_position(nullptr),
-  initial_yaw_orientation(nullptr),
+  calibrate_counter(30),
+  yaw_orientation_offset(nullptr),
+  x_position_offset(nullptr),
+  y_position_offset(nullptr),
   forward_maneuver(0.0),
   left_maneuver(0.0),
   yaw_maneuver(0.0),
@@ -166,111 +167,8 @@ bool Navigation::connect()
   {
     update_timer = this->create_wall_timer(
       1ms, [this]() {
-        // Receive process
-        {
-          char buffer[64];
-          socklen_t slen = sizeof(client_addr);
-
-          int received = recvfrom(sockfd, buffer, 64, 0, (struct sockaddr *)&client_addr, &slen);
-
-          if (received > 0) {
-            std::vector<std::string> data;
-
-            std::stringstream ss(buffer);
-            while (ss.good()) {
-              std::string substr;
-              std::getline(ss, substr, ',');
-              data.push_back(substr);
-            }
-
-            if (data.size() >= 2) {
-              double yaw_orientation = stod(data[2]);
-
-              // Filter current orientation
-              {
-                if (initial_yaw_orientation == nullptr) {
-                  initial_yaw_orientation = std::make_shared<double>(yaw_orientation);
-                }
-
-                yaw_orientation -= *initial_yaw_orientation;
-
-                while (yaw_orientation > 180.0) {
-                  yaw_orientation -= 360.0;
-                }
-
-                while (yaw_orientation < -180.0) {
-                  yaw_orientation += 360.0;
-                }
-              }
-
-              // Publish current orientation
-              {
-                Orientation orientation;
-                orientation.yaw = yaw_orientation;
-
-                orientation_publisher->publish(orientation);
-              }
-
-              // Calculate current position
-              {
-                int wheel_encoder_a = stoi(data[0]);
-                int wheel_encoder_b = stoi(data[1]);
-
-                double xa = wheel_encoder_a * cos((yaw_orientation + 135.0) * PI / 180.0);
-                double xb = wheel_encoder_b * cos((yaw_orientation + 45.0) * PI / 180.0);
-
-                double ya = wheel_encoder_a * sin((yaw_orientation + 135.0) * PI / 180.0);
-                double yb = wheel_encoder_b * sin((yaw_orientation + 45.0) * PI / 180.0);
-
-                double x_position = (xa + xb) * 0.0003947368;
-                double y_position = (ya + yb) * 0.0003947368;
-
-                // Filter current position
-                {
-                  if (initial_x_position == nullptr) {
-                    initial_x_position = std::make_shared<double>(x_position);
-                  }
-
-                  if (initial_y_position == nullptr) {
-                    initial_y_position = std::make_shared<double>(y_position);
-                  }
-
-                  x_position -= *initial_x_position;
-                  y_position -= *initial_y_position;
-                }
-
-                // Publish current position
-                {
-                  Position position;
-                  position.x = x_position;
-                  position.y = y_position;
-
-                  position_publisher->publish(position);
-                }
-              }
-            }
-          }
-        }
-
-        // Send process
-        {
-          char buffer[9];
-
-          buffer[0] = 'i';
-          buffer[1] = 't';
-          buffer[2] = 's';
-
-          int16_t x = left_maneuver;
-          int16_t y = forward_maneuver;
-          int16_t yaw = yaw_maneuver;
-
-          memcpy(buffer + 3, &x, 2);
-          memcpy(buffer + 5, &y, 2);
-          memcpy(buffer + 7, &yaw, 2);
-
-          socklen_t slen = sizeof(client_addr);
-          sendto(sockfd, buffer, 9, 0, (struct sockaddr *)&client_addr, slen);
-        }
+        receive_process();
+        send_process();
       }
     );
   }
@@ -342,6 +240,126 @@ Maneuver Navigation::configure_maneuver(const Maneuver & maneuver)
   }
 
   return result;
+}
+
+void Navigation::receive_process()
+{
+  char buffer[64];
+  socklen_t slen = sizeof(client_addr);
+
+  int received = recvfrom(sockfd, buffer, 64, 0, (struct sockaddr *)&client_addr, &slen);
+
+  if (calibrate_counter > 0) {
+    --calibrate_counter;
+    return;
+  }
+
+  if (received > 0) {
+    std::vector<std::string> data;
+
+    std::stringstream ss(buffer);
+    while (ss.good()) {
+      std::string substr;
+      std::getline(ss, substr, ',');
+      data.push_back(substr);
+    }
+
+    if (data.size() > 1) {
+      double x_position = stod(data[1]) * 0.01;
+      double y_position = stod(data[0]) * 0.01;
+
+      RCLCPP_INFO_STREAM(get_logger(), x_position << " " << y_position);
+
+      // Filter current position
+      {
+        if (x_position_offset == nullptr) {
+          x_position_offset = std::make_shared<double>(x_position);
+        }
+
+        if (y_position_offset == nullptr) {
+          y_position_offset = std::make_shared<double>(y_position);
+        }
+      }
+
+      // Publish current position
+      {
+        Position position;
+        position.x = x_position;
+        position.y = y_position;
+
+        position_publisher->publish(position);
+      }
+    }
+
+    if (data.size() > 2) {
+      double yaw_orientation = stod(data[2]);
+
+      // Filter current orientation
+      {
+        if (yaw_orientation_offset == nullptr) {
+          yaw_orientation_offset = std::make_shared<double>(yaw_orientation);
+        }
+
+        while (yaw_orientation > 180.0) {
+          yaw_orientation -= 360.0;
+        }
+
+        while (yaw_orientation < -180.0) {
+          yaw_orientation += 360.0;
+        }
+      }
+
+      // Publish current orientation
+      {
+        Orientation orientation;
+        orientation.yaw = yaw_orientation;
+
+        orientation_publisher->publish(orientation);
+      }
+    }
+  }
+}
+
+void Navigation::send_process()
+{
+  char buffer[23];
+
+  buffer[0] = 'i';
+  buffer[1] = 't';
+  buffer[2] = 's';
+
+  int16_t x = left_maneuver;
+  memcpy(buffer + 3, &x, 2);
+
+  int16_t y = forward_maneuver;
+  memcpy(buffer + 5, &y, 2);
+
+  int16_t yaw = yaw_maneuver;
+  memcpy(buffer + 7, &yaw, 2);
+
+  float yaw_offset = 0;
+  if (yaw_orientation_offset != nullptr) {
+    yaw_offset = *yaw_orientation_offset;
+  }
+
+  memcpy(buffer + 11, &yaw_offset, 4);
+
+  float y_offset = 0;
+  if (y_position_offset != nullptr) {
+    y_offset = (*y_position_offset) * 100.0;
+  }
+
+  memcpy(buffer + 15, &y_offset, 4);
+
+  float x_offset = 0;
+  if (x_position_offset != nullptr) {
+    x_offset = (*x_position_offset) * 100.0;
+  }
+
+  memcpy(buffer + 19, &x_offset, 4);
+
+  socklen_t slen = sizeof(client_addr);
+  sendto(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, slen);
 }
 
 }  // namespace tosshin

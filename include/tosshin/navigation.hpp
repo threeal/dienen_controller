@@ -56,6 +56,9 @@ public:
 private:
   Maneuver configure_maneuver(const Maneuver & maneuver);
 
+  void receive_process();
+  void send_process();
+
   rclcpp::Publisher<Position>::SharedPtr position_publisher;
   rclcpp::Publisher<Orientation>::SharedPtr orientation_publisher;
 
@@ -66,9 +69,11 @@ private:
 
   rclcpp::TimerBase::SharedPtr update_timer;
 
-  std::shared_ptr<double> initial_x_position;
-  std::shared_ptr<double> initial_y_position;
-  std::shared_ptr<double> initial_yaw_orientation;
+  int calibrate_counter;
+
+  std::shared_ptr<double> yaw_orientation_offset;
+  std::shared_ptr<double> x_position_offset;
+  std::shared_ptr<double> y_position_offset;
 
   double forward_maneuver;
   double left_maneuver;
