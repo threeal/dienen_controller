@@ -15,6 +15,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(housou REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tosshin_interfaces REQUIRED)
 
@@ -26,6 +27,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>)
 
 ament_target_dependencies(${PROJECT_NAME}
+  housou
   rclcpp
   tosshin_interfaces)
 
