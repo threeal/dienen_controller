@@ -59,7 +59,10 @@ public:
     float x_offset;
   };
 
-  Navigation(std::string node_name, int listener_port, int broadcaster_port);
+  Navigation(
+    std::string node_name, std::string target_host,
+    int listener_port, int broadcaster_port);
+
   ~Navigation();
 
   bool connect();

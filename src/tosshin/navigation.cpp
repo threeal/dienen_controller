@@ -34,7 +34,9 @@ using namespace std::chrono_literals;
 
 const double PI = atan(1) * 4;
 
-Navigation::Navigation(std::string node_name, int listener_port, int broadcaster_port)
+Navigation::Navigation(
+  std::string node_name, std::string target_host,
+  int listener_port, int broadcaster_port)
 : rclcpp::Node(node_name),
   calibrate_counter(30),
   yaw_orientation_offset(nullptr),
@@ -128,7 +130,7 @@ Navigation::Navigation(std::string node_name, int listener_port, int broadcaster
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Listener initialized on port " <<
-        listener->port << "!");
+        listener->get_port() << "!");
   }
 
   // Initialize the broadcaster
@@ -136,10 +138,12 @@ Navigation::Navigation(std::string node_name, int listener_port, int broadcaster
     using Broadcaster = housou::Broadcaster<BroadcastMessage>;
     broadcaster = std::make_shared<Broadcaster>(broadcaster_port);
 
+    broadcaster->add_target_host(target_host);
+
     RCLCPP_INFO_STREAM(
       get_logger(),
       "Broadcaster initialized on port " <<
-        broadcaster->port << "!");
+        broadcaster->get_port() << "!");
   }
 }
 
