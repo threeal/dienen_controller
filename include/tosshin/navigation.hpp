@@ -21,6 +21,7 @@
 #ifndef TOSSHIN__NAVIGATION_HPP_
 #define TOSSHIN__NAVIGATION_HPP_
 
+#include <housou/housou.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <tosshin_interfaces/msg/maneuver.hpp>
 #include <tosshin_interfaces/msg/orientation.hpp>
@@ -43,10 +44,24 @@ using ConfigureManeuver = tosshin_interfaces::srv::ConfigureManeuver;
 class Navigation : public rclcpp::Node
 {
 public:
+  struct BroadcastMessage
+  {
+    char headers[3] = {'i', 't', 's'};
+
+    int16_t left_maneuver;
+    int16_t forward_maneuver;
+    int16_t yaw_maneuver;
+
+    int16_t unused = 0;
+
+    float yaw_offset;
+    float y_offset;
+    float x_offset;
+  };
+
   Navigation(
-    std::string node_name, const char * server_ip, int server_port,
-    const char * client_ip, int client_port
-  );
+    std::string node_name, std::string target_host,
+    int listener_port, int broadcaster_port);
 
   ~Navigation();
 
@@ -56,8 +71,8 @@ public:
 private:
   Maneuver configure_maneuver(const Maneuver & maneuver);
 
-  void receive_process();
-  void send_process();
+  void listen_process();
+  void broadcast_process();
 
   rclcpp::Publisher<Position>::SharedPtr position_publisher;
   rclcpp::Publisher<Orientation>::SharedPtr orientation_publisher;
@@ -79,10 +94,8 @@ private:
   double left_maneuver;
   double yaw_maneuver;
 
-  int sockfd;
-
-  struct sockaddr_in server_addr;
-  struct sockaddr_in client_addr;
+  std::shared_ptr<housou::StringListener> listener;
+  std::shared_ptr<housou::Broadcaster<BroadcastMessage>> broadcaster;
 };
 
 }  // namespace tosshin

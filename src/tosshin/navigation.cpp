@@ -35,9 +35,8 @@ using namespace std::chrono_literals;
 const double PI = atan(1) * 4;
 
 Navigation::Navigation(
-  std::string node_name, const char * server_ip, int server_port,
-  const char * client_ip, int client_port
-)
+  std::string node_name, std::string target_host,
+  int listener_port, int broadcaster_port)
 : rclcpp::Node(node_name),
   calibrate_counter(30),
   yaw_orientation_offset(nullptr),
@@ -45,8 +44,7 @@ Navigation::Navigation(
   y_position_offset(nullptr),
   forward_maneuver(0.0),
   left_maneuver(0.0),
-  yaw_maneuver(0.0),
-  sockfd(-1)
+  yaw_maneuver(0.0)
 {
   // Initialize the node
   {
@@ -125,21 +123,27 @@ Navigation::Navigation(
     }
   }
 
-  // Initialize the TCP addresses
+  // Initialize the listener
   {
-    memset(reinterpret_cast<char *>(&server_addr), 0, sizeof(server_addr));
+    listener = std::make_shared<housou::StringListener>(listener_port);
 
-    inet_aton(server_ip, &server_addr.sin_addr);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Listener initialized on port " <<
+        listener->get_port() << "!");
+  }
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(server_port);
+  // Initialize the broadcaster
+  {
+    using Broadcaster = housou::Broadcaster<BroadcastMessage>;
+    broadcaster = std::make_shared<Broadcaster>(broadcaster_port);
 
-    memset(reinterpret_cast<char *>(&client_addr), 0, sizeof(client_addr));
+    broadcaster->add_target_host(target_host);
 
-    inet_aton(client_ip, &client_addr.sin_addr);
-
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_port = htons(client_port);
+    RCLCPP_INFO_STREAM(
+      get_logger(),
+      "Broadcaster initialized on port " <<
+        broadcaster->get_port() << "!");
   }
 }
 
@@ -150,25 +154,22 @@ Navigation::~Navigation()
 
 bool Navigation::connect()
 {
-  if (sockfd >= 0) {
+  if (!listener->connect()) {
+    RCLCPP_ERROR(get_logger(), "Failed to connect the listener!");
     return false;
   }
 
-  sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sockfd < 0) {
+  if (!broadcaster->connect()) {
+    RCLCPP_ERROR(get_logger(), "Failed to connect the broadcaster!");
     return false;
   }
-
-  bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-
-  RCLCPP_INFO_STREAM(get_logger(), "Connected to the tcp communication!");
 
   // Initialize the update timer
   {
     update_timer = this->create_wall_timer(
       1ms, [this]() {
-        receive_process();
-        send_process();
+        listen_process();
+        broadcast_process();
       }
     );
   }
@@ -178,12 +179,15 @@ bool Navigation::connect()
 
 bool Navigation::disconnect()
 {
-  if (sockfd < 0) {
+  if (!listener->disconnect()) {
+    RCLCPP_ERROR(get_logger(), "Failed to disconnect the listener!");
     return false;
   }
 
-  close(sockfd);
-  sockfd = -1;
+  if (!broadcaster->disconnect()) {
+    RCLCPP_ERROR(get_logger(), "Failed to disconnect the broadcaster!");
+    return false;
+  }
 
   update_timer->cancel();
 
@@ -242,22 +246,19 @@ Maneuver Navigation::configure_maneuver(const Maneuver & maneuver)
   return result;
 }
 
-void Navigation::receive_process()
+void Navigation::listen_process()
 {
-  char buffer[64];
-  socklen_t slen = sizeof(client_addr);
-
-  int received = recvfrom(sockfd, buffer, 64, 0, (struct sockaddr *)&client_addr, &slen);
+  auto message = listener->receive(64);
 
   if (calibrate_counter > 0) {
     --calibrate_counter;
     return;
   }
 
-  if (received > 0) {
+  if (message.size() > 0) {
     std::vector<std::string> data;
 
-    std::stringstream ss(buffer);
+    std::stringstream ss(message);
     while (ss.good()) {
       std::string substr;
       std::getline(ss, substr, ',');
@@ -320,46 +321,30 @@ void Navigation::receive_process()
   }
 }
 
-void Navigation::send_process()
+void Navigation::broadcast_process()
 {
-  char buffer[23];
+  BroadcastMessage message;
 
-  buffer[0] = 'i';
-  buffer[1] = 't';
-  buffer[2] = 's';
+  message.left_maneuver = left_maneuver;
+  message.forward_maneuver = forward_maneuver;
+  message.yaw_maneuver = yaw_maneuver;
 
-  int16_t x = left_maneuver;
-  memcpy(buffer + 3, &x, 2);
-
-  int16_t y = forward_maneuver;
-  memcpy(buffer + 5, &y, 2);
-
-  int16_t yaw = yaw_maneuver;
-  memcpy(buffer + 7, &yaw, 2);
-
-  float yaw_offset = 0;
+  message.yaw_offset = 0;
   if (yaw_orientation_offset != nullptr) {
-    yaw_offset = *yaw_orientation_offset;
+    message.yaw_offset = *yaw_orientation_offset;
   }
 
-  memcpy(buffer + 11, &yaw_offset, 4);
-
-  float y_offset = 0;
-  if (y_position_offset != nullptr) {
-    y_offset = (*y_position_offset) * 100.0;
-  }
-
-  memcpy(buffer + 15, &y_offset, 4);
-
-  float x_offset = 0;
+  message.x_offset = 0;
   if (x_position_offset != nullptr) {
-    x_offset = (*x_position_offset) * 100.0;
+    message.x_offset = (*x_position_offset) * 100.0;
   }
 
-  memcpy(buffer + 19, &x_offset, 4);
+  message.y_offset = 0;
+  if (y_position_offset != nullptr) {
+    message.y_offset = (*y_position_offset) * 100.0;
+  }
 
-  socklen_t slen = sizeof(client_addr);
-  sendto(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&client_addr, slen);
+  broadcaster->send(message);
 }
 
 }  // namespace tosshin

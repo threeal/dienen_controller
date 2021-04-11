@@ -28,20 +28,18 @@ int main(int argc, char ** argv)
 {
   if (argc < 5) {
     std::cout << "Usage: ros2 run tosshin navigation" <<
-      " <server_ip> <server_port> <client_ip> <client_port>" << std::endl;
+      " <target_host> <listener_port> <broadcaster_port>" << std::endl;
     return 1;
   }
 
-  const char * server_ip = argv[1];
-  int server_port = atoi(argv[2]);
-
-  const char * client_ip = argv[3];
-  int client_port = atoi(argv[4]);
+  std::string target_host = argv[1];
+  int listener_port = atoi(argv[2]);
+  int broadcaster_port = atoi(argv[3]);
 
   rclcpp::init(argc, argv);
 
   auto navigation = std::make_shared<tosshin::Navigation>(
-    "navigation", server_ip, server_port, client_ip, client_port
+    "navigation", target_host, listener_port, broadcaster_port
   );
 
   if (navigation->connect()) {
