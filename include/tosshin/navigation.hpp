@@ -21,14 +21,9 @@
 #ifndef TOSSHIN__NAVIGATION_HPP_
 #define TOSSHIN__NAVIGATION_HPP_
 
-#include <housou/housou.hpp>
+#include <musen/musen.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <tosshin_interfaces/msg/maneuver.hpp>
-#include <tosshin_interfaces/msg/orientation.hpp>
-#include <tosshin_interfaces/msg/position.hpp>
-#include <tosshin_interfaces/srv/configure_maneuver.hpp>
-
-#include <arpa/inet.h>
+#include <tosshin_interfaces/tosshin_interfaces.hpp>
 
 #include <memory>
 #include <string>
@@ -94,8 +89,8 @@ private:
   double left_maneuver;
   double yaw_maneuver;
 
-  std::shared_ptr<housou::StringListener> listener;
-  std::shared_ptr<housou::Broadcaster<BroadcastMessage>> broadcaster;
+  std::shared_ptr<musen::StringListener> listener;
+  std::shared_ptr<musen::Broadcaster<BroadcastMessage>> broadcaster;
 };
 
 }  // namespace tosshin

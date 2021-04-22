@@ -125,7 +125,7 @@ Navigation::Navigation(
 
   // Initialize the listener
   {
-    listener = std::make_shared<housou::StringListener>(listener_port);
+    listener = std::make_shared<musen::StringListener>(listener_port);
 
     RCLCPP_INFO_STREAM(
       get_logger(),
@@ -135,7 +135,7 @@ Navigation::Navigation(
 
   // Initialize the broadcaster
   {
-    using Broadcaster = housou::Broadcaster<BroadcastMessage>;
+    using Broadcaster = musen::Broadcaster<BroadcastMessage>;
     broadcaster = std::make_shared<Broadcaster>(broadcaster_port);
 
     broadcaster->add_target_host(target_host);
