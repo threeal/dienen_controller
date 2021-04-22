@@ -20,7 +20,7 @@ find_package(rclcpp REQUIRED)
 find_package(tosshin_interfaces REQUIRED)
 
 add_library(${PROJECT_NAME}
-  "src/${PROJECT_NAME}/navigation.cpp")
+  "src/navigation.cpp")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -36,7 +36,7 @@ install(TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION "lib"
   RUNTIME DESTINATION "bin")
 
-add_executable(navigation "src/navigation_main.cpp")
+add_executable(navigation "bin/navigation.cpp")
 
 target_include_directories(navigation PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
