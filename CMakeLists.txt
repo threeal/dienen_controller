@@ -15,21 +15,18 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(housou REQUIRED)
+find_package(musen REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tosshin_interfaces REQUIRED)
 
 add_library(${PROJECT_NAME}
-  "src/${PROJECT_NAME}/navigation.cpp")
+  "src/navigation.cpp")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-ament_target_dependencies(${PROJECT_NAME}
-  housou
-  rclcpp
-  tosshin_interfaces)
+ament_target_dependencies(${PROJECT_NAME} musen rclcpp tosshin_interfaces)
 
 install(DIRECTORY "include" DESTINATION ".")
 
@@ -39,7 +36,7 @@ install(TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION "lib"
   RUNTIME DESTINATION "bin")
 
-add_executable(navigation "src/navigation_main.cpp")
+add_executable(navigation "bin/navigation.cpp")
 
 target_include_directories(navigation PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -55,7 +52,7 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_export_dependencies(rclcpp tosshin_interfaces)
+ament_export_dependencies(musen rclcpp tosshin_interfaces)
 ament_export_include_directories("include")
 ament_export_libraries(${PROJECT_NAME})
 ament_package()
