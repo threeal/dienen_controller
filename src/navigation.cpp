@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <tosshin/navigation.hpp>
+#include <tosshin_dienen_controller/navigation.hpp>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-namespace tosshin
+namespace tosshin_dienen_controller
 {
 
 using namespace std::chrono_literals;
@@ -347,4 +347,4 @@ void Navigation::broadcast_process()
   broadcaster->send(message);
 }
 
-}  // namespace tosshin
+}  // namespace tosshin_dienen_controller

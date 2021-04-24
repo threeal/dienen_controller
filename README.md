@@ -1,11 +1,11 @@
-# Tosshin
+# Tosshin Dienen Controller
 
-[![latest version](https://img.shields.io/github/v/release/threeal/tosshin)](https://github.com/threeal/tosshin/releases/)
-[![milestone](https://img.shields.io/github/milestones/progress/threeal/tosshin/1?label=milestone)](https://github.com/threeal/tosshin/milestone/1)
-[![license](https://img.shields.io/github/license/threeal/tosshin)](./LICENSE)
-[![test status](https://img.shields.io/github/workflow/status/threeal/tosshin/Build%20and%20Test?label=test)](https://github.com/threeal/tosshin/actions)
+[![latest version](https://img.shields.io/github/v/release/threeal/tosshin_dienen_controller)](https://github.com/threeal/tosshin_dienen_controller/releases/)
+[![milestone](https://img.shields.io/github/milestones/progress/threeal/tosshin_dienen_controller/1?label=milestone)](https://github.com/threeal/tosshin_dienen_controller/milestone/1)
+[![license](https://img.shields.io/github/license/threeal/tosshin_dienen_controller)](./LICENSE)
+[![test status](https://img.shields.io/github/workflow/status/threeal/tosshin_dienen_controller/Build%20and%20Test?label=test)](https://github.com/threeal/tosshin_dienen_controller/actions)
 
-This package provides a mobile robot navigation library for [ROS 2](https://docs.ros.org/en/foxy/index.html) projects.
+This package provides a [Dienen](https://github.com/threeal/proposal-ta-simulasi-robot) assistive robot's controller client implementation of [Tosshin](https://github.com/threeal/tosshin) mobile robot navigation project.
 
 ## License
 

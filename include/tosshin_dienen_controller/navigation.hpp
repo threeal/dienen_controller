@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef TOSSHIN__NAVIGATION_HPP_
-#define TOSSHIN__NAVIGATION_HPP_
+#ifndef TOSSHIN_DIENEN_CONTROLLER__NAVIGATION_HPP_
+#define TOSSHIN_DIENEN_CONTROLLER__NAVIGATION_HPP_
 
 #include <musen/musen.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -28,7 +28,7 @@
 #include <memory>
 #include <string>
 
-namespace tosshin
+namespace tosshin_dienen_controller
 {
 
 using Maneuver = tosshin_interfaces::msg::Maneuver;
@@ -93,6 +93,6 @@ private:
   std::shared_ptr<musen::Broadcaster<BroadcastMessage>> broadcaster;
 };
 
-}  // namespace tosshin
+}  // namespace tosshin_dienen_controller
 
-#endif  // TOSSHIN__NAVIGATION_HPP__
+#endif  // TOSSHIN_DIENEN_CONTROLLER__NAVIGATION_HPP_
