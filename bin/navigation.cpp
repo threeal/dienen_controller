@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 #include <rclcpp/rclcpp.hpp>
-#include <tosshin/navigation.hpp>
+#include <tosshin_dienen_controller/navigation.hpp>
 
 #include <memory>
 #include <string>
@@ -27,7 +27,7 @@
 int main(int argc, char ** argv)
 {
   if (argc < 5) {
-    std::cout << "Usage: ros2 run tosshin navigation" <<
+    std::cout << "Usage: ros2 run tosshin_dienen_controller navigation" <<
       " <target_host> <listener_port> <broadcaster_port>" << std::endl;
     return 1;
   }
@@ -38,7 +38,7 @@ int main(int argc, char ** argv)
 
   rclcpp::init(argc, argv);
 
-  auto navigation = std::make_shared<tosshin::Navigation>(
+  auto navigation = std::make_shared<tosshin_dienen_controller::Navigation>(
     "navigation", target_host, listener_port, broadcaster_port
   );
 
