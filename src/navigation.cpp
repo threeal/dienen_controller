@@ -124,7 +124,7 @@ void Navigation::listen_process()
       odometry.position.x = stod(message[1]) * 0.01;
 
       // Orientation received as yaw in unwrapped degree
-      odometry.orientation.yaw =  keisan::wrap_deg(stod(message[2]));
+      odometry.orientation.yaw = keisan::wrap_deg(stod(message[2]));
 
       set_odometry(odometry);
     } catch (const std::out_of_range & err) {
