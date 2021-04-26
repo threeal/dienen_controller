@@ -23,7 +23,7 @@
 
 #include <musen/musen.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <tosshin_interfaces/tosshin_interfaces.hpp>
+#include <tosshin_cpp/tosshin_cpp.hpp>
 
 #include <memory>
 #include <string>
@@ -31,12 +31,7 @@
 namespace tosshin_dienen_controller
 {
 
-using Maneuver = tosshin_interfaces::msg::Maneuver;
-using Orientation = tosshin_interfaces::msg::Orientation;
-using Position = tosshin_interfaces::msg::Position;
-using ConfigureManeuver = tosshin_interfaces::srv::ConfigureManeuver;
-
-class Navigation : public rclcpp::Node
+class Navigation : public tosshin_cpp::NavigationProvider
 {
 public:
   struct BroadcastMessage
@@ -55,8 +50,8 @@ public:
   };
 
   Navigation(
-    std::string node_name, std::string target_host,
-    int listener_port, int broadcaster_port);
+    rclcpp::Node::SharedPtr node, std::string target_host,
+    int listen_port = 8888, int broadcast_port = 4444);
 
   ~Navigation();
 
@@ -64,30 +59,12 @@ public:
   bool disconnect();
 
 private:
-  Maneuver configure_maneuver(const Maneuver & maneuver);
-
   void listen_process();
   void broadcast_process();
 
-  rclcpp::Publisher<Position>::SharedPtr position_publisher;
-  rclcpp::Publisher<Orientation>::SharedPtr orientation_publisher;
-
-  rclcpp::Publisher<Maneuver>::SharedPtr maneuver_event_publisher;
-  rclcpp::Subscription<Maneuver>::SharedPtr maneuver_input_subscription;
-
-  rclcpp::Service<ConfigureManeuver>::SharedPtr configure_maneuver_service;
+  std::shared_ptr<tosshin_cpp::NavigationProvider> navigation_provider;
 
   rclcpp::TimerBase::SharedPtr update_timer;
-
-  int calibrate_counter;
-
-  std::shared_ptr<double> yaw_orientation_offset;
-  std::shared_ptr<double> x_position_offset;
-  std::shared_ptr<double> y_position_offset;
-
-  double forward_maneuver;
-  double left_maneuver;
-  double yaw_maneuver;
 
   std::shared_ptr<musen::StringListener> listener;
   std::shared_ptr<musen::Broadcaster<BroadcastMessage>> broadcaster;

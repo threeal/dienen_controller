@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <keisan/keisan.hpp>
+
 #include <tosshin_dienen_controller/navigation.hpp>
 
 #include <sys/socket.h>
@@ -32,118 +34,41 @@ namespace tosshin_dienen_controller
 
 using namespace std::chrono_literals;
 
-const double PI = atan(1) * 4;
-
 Navigation::Navigation(
-  std::string node_name, std::string target_host,
-  int listener_port, int broadcaster_port)
-: rclcpp::Node(node_name),
-  calibrate_counter(30),
-  yaw_orientation_offset(nullptr),
-  x_position_offset(nullptr),
-  y_position_offset(nullptr),
-  forward_maneuver(0.0),
-  left_maneuver(0.0),
-  yaw_maneuver(0.0)
+  rclcpp::Node::SharedPtr node, std::string target_host,
+  int listen_port, int broadcast_port)
+: tosshin_cpp::NavigationProvider(node)
 {
-  // Initialize the node
+  // Initialize the update timer
   {
-    RCLCPP_INFO_STREAM(get_logger(), "Node initialized with name " << get_name() << "!");
+    update_timer = get_node()->create_wall_timer(
+      1ms, [this]() {
+        listen_process();
+        broadcast_process();
+      });
 
-    // Initialize the position publisher
-    {
-      position_publisher = create_publisher<Position>(
-        std::string(get_name()) + "/position", 10
-      );
-
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Position publisher initialized on " <<
-          position_publisher->get_topic_name() << "!"
-      );
-    }
-
-    // Initialize the orientation publisher
-    {
-      orientation_publisher = create_publisher<Orientation>(
-        std::string(get_name()) + "/orientation", 10
-      );
-
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Orientation publisher initialized on " <<
-          orientation_publisher->get_topic_name() << "!"
-      );
-    }
-
-    // Initialize the maneuver event publisher
-    {
-      maneuver_event_publisher = create_publisher<Maneuver>(
-        std::string(get_name()) + "/maneuver_event", 10
-      );
-
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Maneuver event publisher initialized on " <<
-          maneuver_event_publisher->get_topic_name() << "!"
-      );
-    }
-
-    // Initialize the maneuver input subscription
-    {
-      maneuver_input_subscription = create_subscription<Maneuver>(
-        std::string(get_name()) + "/maneuver_input", 10,
-        [this](const Maneuver::SharedPtr maneuver) {
-          configure_maneuver(*maneuver);
-        }
-      );
-
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Maneuver input subscription initialized on " <<
-          maneuver_input_subscription->get_topic_name() << "!"
-      );
-    }
-
-    // Initialize the configure maneuver service
-    {
-      configure_maneuver_service = create_service<ConfigureManeuver>(
-        std::string(get_name()) + "/configure_maneuver",
-        [this](ConfigureManeuver::Request::SharedPtr request,
-        ConfigureManeuver::Response::SharedPtr response) {
-          response->maneuver = configure_maneuver(request->maneuver);
-        }
-      );
-
-      RCLCPP_INFO_STREAM(
-        get_logger(),
-        "Configure maneuver service initialized on " <<
-          configure_maneuver_service->get_service_name() << "!"
-      );
-    }
+    update_timer->cancel();
   }
 
   // Initialize the listener
   {
-    listener = std::make_shared<musen::StringListener>(listener_port);
+    listener = std::make_shared<musen::StringListener>(listen_port);
 
     RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Listener initialized on port " <<
-        listener->get_port() << "!");
+      get_node()->get_logger(),
+      "Listener initialized on port " << listener->get_port() << "!");
   }
 
   // Initialize the broadcaster
   {
     using Broadcaster = musen::Broadcaster<BroadcastMessage>;
-    broadcaster = std::make_shared<Broadcaster>(broadcaster_port);
+    broadcaster = std::make_shared<Broadcaster>(broadcast_port);
 
     broadcaster->add_target_host(target_host);
 
     RCLCPP_INFO_STREAM(
-      get_logger(),
-      "Broadcaster initialized on port " <<
-        broadcaster->get_port() << "!");
+      get_node()->get_logger(),
+      "Broadcaster initialized on port " << broadcaster->get_port() << "!");
   }
 }
 
@@ -155,24 +80,16 @@ Navigation::~Navigation()
 bool Navigation::connect()
 {
   if (!listener->connect()) {
-    RCLCPP_ERROR(get_logger(), "Failed to connect the listener!");
+    RCLCPP_ERROR(get_node()->get_logger(), "Failed to connect the listener!");
     return false;
   }
 
   if (!broadcaster->connect()) {
-    RCLCPP_ERROR(get_logger(), "Failed to connect the broadcaster!");
+    RCLCPP_ERROR(get_node()->get_logger(), "Failed to connect the broadcaster!");
     return false;
   }
 
-  // Initialize the update timer
-  {
-    update_timer = this->create_wall_timer(
-      1ms, [this]() {
-        listen_process();
-        broadcast_process();
-      }
-    );
-  }
+  update_timer->reset();
 
   return true;
 }
@@ -180,12 +97,12 @@ bool Navigation::connect()
 bool Navigation::disconnect()
 {
   if (!listener->disconnect()) {
-    RCLCPP_ERROR(get_logger(), "Failed to disconnect the listener!");
+    RCLCPP_ERROR(get_node()->get_logger(), "Failed to disconnect the listener!");
     return false;
   }
 
   if (!broadcaster->disconnect()) {
-    RCLCPP_ERROR(get_logger(), "Failed to disconnect the broadcaster!");
+    RCLCPP_ERROR(get_node()->get_logger(), "Failed to disconnect the broadcaster!");
     return false;
   }
 
@@ -194,129 +111,24 @@ bool Navigation::disconnect()
   return true;
 }
 
-Maneuver Navigation::configure_maneuver(const Maneuver & maneuver)
-{
-  Maneuver result;
-  bool configured = false;
-
-  if (maneuver.forward.size() > 0) {
-    forward_maneuver = maneuver.forward.front();
-    result.forward.push_back(forward_maneuver);
-
-    configured = true;
-    RCLCPP_DEBUG_STREAM(
-      get_logger(),
-      "Forward maneuver configured into " <<
-        forward_maneuver << "!"
-    );
-  }
-
-  if (maneuver.left.size() > 0) {
-    left_maneuver = maneuver.left.front();
-    result.left.push_back(left_maneuver);
-
-    configured = true;
-    RCLCPP_DEBUG_STREAM(
-      get_logger(),
-      "Left maneuver configured into " <<
-        left_maneuver << "!"
-    );
-  }
-
-  if (maneuver.yaw.size() > 0) {
-    yaw_maneuver = maneuver.yaw.front();
-    result.yaw.push_back(yaw_maneuver);
-
-    configured = true;
-    RCLCPP_DEBUG_STREAM(
-      get_logger(),
-      "Yaw maneuver configured into " <<
-        yaw_maneuver << "!"
-    );
-  }
-
-  if (configured) {
-    maneuver_event_publisher->publish(result);
-  } else {
-    result.forward.push_back(forward_maneuver);
-    result.left.push_back(left_maneuver);
-    result.yaw.push_back(yaw_maneuver);
-  }
-
-  return result;
-}
-
 void Navigation::listen_process()
 {
-  auto message = listener->receive(64);
-
-  if (calibrate_counter > 0) {
-    --calibrate_counter;
-    return;
-  }
+  auto message = listener->receive(64, ",");
 
   if (message.size() > 0) {
-    std::vector<std::string> data;
+    try {
+      tosshin_cpp::Odometry odometry;
 
-    std::stringstream ss(message);
-    while (ss.good()) {
-      std::string substr;
-      std::getline(ss, substr, ',');
-      data.push_back(substr);
-    }
+      // Position received as y, x in centimetre
+      odometry.position.y = stod(message[0]) * 0.01;
+      odometry.position.x = stod(message[1]) * 0.01;
 
-    if (data.size() > 1) {
-      double x_position = stod(data[1]) * 0.01;
-      double y_position = stod(data[0]) * 0.01;
+      // Orientation received as yaw in unwrapped degree
+      odometry.orientation.yaw = keisan::wrap_deg(stod(message[2]));
 
-      RCLCPP_INFO_STREAM(get_logger(), x_position << " " << y_position);
-
-      // Filter current position
-      {
-        if (x_position_offset == nullptr) {
-          x_position_offset = std::make_shared<double>(x_position);
-        }
-
-        if (y_position_offset == nullptr) {
-          y_position_offset = std::make_shared<double>(y_position);
-        }
-      }
-
-      // Publish current position
-      {
-        Position position;
-        position.x = x_position;
-        position.y = y_position;
-
-        position_publisher->publish(position);
-      }
-    }
-
-    if (data.size() > 2) {
-      double yaw_orientation = stod(data[2]);
-
-      // Filter current orientation
-      {
-        if (yaw_orientation_offset == nullptr) {
-          yaw_orientation_offset = std::make_shared<double>(yaw_orientation);
-        }
-
-        while (yaw_orientation > 180.0) {
-          yaw_orientation -= 360.0;
-        }
-
-        while (yaw_orientation < -180.0) {
-          yaw_orientation += 360.0;
-        }
-      }
-
-      // Publish current orientation
-      {
-        Orientation orientation;
-        orientation.yaw = yaw_orientation;
-
-        orientation_publisher->publish(orientation);
-      }
+      set_odometry(odometry);
+    } catch (const std::out_of_range & err) {
+      RCLCPP_WARN_STREAM(get_node()->get_logger(), "Not all values are received! " << err.what());
     }
   }
 }
@@ -325,24 +137,15 @@ void Navigation::broadcast_process()
 {
   BroadcastMessage message;
 
-  message.left_maneuver = left_maneuver;
-  message.forward_maneuver = forward_maneuver;
-  message.yaw_maneuver = yaw_maneuver;
+  auto maneuver = get_maneuver();
+
+  message.left_maneuver = maneuver.left;
+  message.forward_maneuver = maneuver.forward;
+  message.yaw_maneuver = maneuver.yaw;
 
   message.yaw_offset = 0;
-  if (yaw_orientation_offset != nullptr) {
-    message.yaw_offset = *yaw_orientation_offset;
-  }
-
   message.x_offset = 0;
-  if (x_position_offset != nullptr) {
-    message.x_offset = (*x_position_offset) * 100.0;
-  }
-
   message.y_offset = 0;
-  if (y_position_offset != nullptr) {
-    message.y_offset = (*y_position_offset) * 100.0;
-  }
 
   broadcaster->send(message);
 }
