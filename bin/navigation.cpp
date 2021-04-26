@@ -26,26 +26,30 @@
 
 int main(int argc, char ** argv)
 {
-  if (argc < 5) {
-    std::cout << "Usage: ros2 run tosshin_dienen_controller navigation" <<
-      " <target_host> <listener_port> <broadcaster_port>" << std::endl;
+  rclcpp::init(argc, argv);
+
+  auto node = std::make_shared<rclcpp::Node>("navigation");
+
+  std::shared_ptr<tosshin_dienen_controller::Navigation> navigation;
+  if (argc > 3) {
+    navigation = std::make_shared<tosshin_dienen_controller::Navigation>(
+      node, std::string(argv[1]), atoi(argv[2]), atoi(argv[3]));
+  } else if (argc > 2) {
+    navigation = std::make_shared<tosshin_dienen_controller::Navigation>(
+      node, std::string(argv[1]), atoi(argv[2]));
+  } else if (argc > 1) {
+    navigation = std::make_shared<tosshin_dienen_controller::Navigation>(
+      node, std::string(argv[1]));
+  } else {
+    std::cerr << "Usage: ros2 run tosshin_dienen_controller navigation " <<
+      "<target_host> [listen_port] [broadcast_port]" << std::endl;
     return 1;
   }
 
-  std::string target_host = argv[1];
-  int listener_port = atoi(argv[2]);
-  int broadcaster_port = atoi(argv[3]);
-
-  rclcpp::init(argc, argv);
-
-  auto navigation = std::make_shared<tosshin_dienen_controller::Navigation>(
-    "navigation", target_host, listener_port, broadcaster_port
-  );
-
   if (navigation->connect()) {
-    rclcpp::spin(navigation);
+    rclcpp::spin(node);
   } else {
-    std::cerr << "Failed to connect to the TCP communication!" << std::endl;
+    std::cerr << "Failed to initialize the connection!" << std::endl;
   }
 
   rclcpp::shutdown();
