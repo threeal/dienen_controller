@@ -51,7 +51,7 @@ public:
 
   Navigation(
     rclcpp::Node::SharedPtr node, std::string target_host,
-    int listen_port = 8888, int broadcast_port = 4444);
+    int listen_port = 8888, int broadcast_port = 44444);
 
   ~Navigation();
 

@@ -62,7 +62,7 @@ Navigation::Navigation(
   // Initialize the broadcaster
   {
     using Broadcaster = musen::Broadcaster<BroadcastMessage>;
-    broadcaster = std::make_shared<Broadcaster>(broadcast_port);
+    broadcaster = std::make_shared<Broadcaster>(broadcast_port, listener->get_udp_socket());
 
     broadcaster->add_target_host(target_host);
 
@@ -84,11 +84,6 @@ bool Navigation::connect()
     return false;
   }
 
-  if (!broadcaster->connect()) {
-    RCLCPP_ERROR(get_node()->get_logger(), "Failed to connect the broadcaster!");
-    return false;
-  }
-
   update_timer->reset();
 
   return true;
@@ -98,11 +93,6 @@ bool Navigation::disconnect()
 {
   if (!listener->disconnect()) {
     RCLCPP_ERROR(get_node()->get_logger(), "Failed to disconnect the listener!");
-    return false;
-  }
-
-  if (!broadcaster->disconnect()) {
-    RCLCPP_ERROR(get_node()->get_logger(), "Failed to disconnect the broadcaster!");
     return false;
   }
 
