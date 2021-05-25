@@ -42,7 +42,7 @@ Navigation::Navigation(
   // Initialize the update timer
   {
     update_timer = get_node()->create_wall_timer(
-      1ms, [this]() {
+      10ms, [this]() {
         listen_process();
         broadcast_process();
       });
@@ -139,9 +139,9 @@ void Navigation::broadcast_process()
 
   auto maneuver = get_maneuver();
 
-  message.left_maneuver = maneuver.left;
-  message.forward_maneuver = maneuver.forward;
-  message.yaw_maneuver = maneuver.yaw;
+  message.left_maneuver = -maneuver.left / 5;
+  message.forward_maneuver = maneuver.forward / 5;
+  message.yaw_maneuver = maneuver.yaw / 5;
 
   message.yaw_offset = 0;
   message.x_offset = 0;

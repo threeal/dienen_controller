@@ -47,7 +47,7 @@ public:
     float yaw_offset;
     float y_offset;
     float x_offset;
-  };
+  } __attribute__((packed, aligned(1)));
 
   Navigation(
     rclcpp::Node::SharedPtr node, std::string target_host,
