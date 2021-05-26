@@ -6,6 +6,7 @@
   <description>Dienen's controller implementation of Tosshin mobile robot navigation project</description>
   <maintainer email="alfi.maulana.f@gmail.com">Alfi Maulana</maintainer>
   <license>MIT License</license>
+  <url>https://github.com/threeal/tosshin_dienen_controller</url>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>keisan</depend>
   <depend>musen</depend>

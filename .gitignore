@@ -9,5 +9,7 @@ install
 debian
 obj-x86_64-linux-gnu
 
+CHANGELOG.rst
+
 *.deb
 *.ddeb
