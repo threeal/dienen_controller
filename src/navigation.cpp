@@ -65,6 +65,7 @@ Navigation::Navigation(
     broadcaster = std::make_shared<Broadcaster>(broadcast_port, listener->get_udp_socket());
 
     broadcaster->add_target_host(target_host);
+    broadcaster->enable_broadcast(false);
 
     RCLCPP_INFO_STREAM(
       get_node()->get_logger(),
