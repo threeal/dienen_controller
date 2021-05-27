@@ -65,6 +65,7 @@ Navigation::Navigation(
     broadcaster = std::make_shared<Broadcaster>(broadcast_port, listener->get_udp_socket());
 
     broadcaster->add_target_host(target_host);
+    broadcaster->enable_broadcast(false);
 
     RCLCPP_INFO_STREAM(
       get_node()->get_logger(),
@@ -107,14 +108,24 @@ void Navigation::listen_process()
 
   if (message.size() > 0) {
     try {
-      tosshin_cpp::Odometry odometry;
+      auto odometry = get_odometry();
 
       // Position received as y, x in centimetre
-      odometry.position.y = stod(message[0]) * 0.01;
-      odometry.position.x = stod(message[1]) * 0.01;
+      // odometry.position.y = stod(message[0]) * 0.01;
+      // odometry.position.x = stod(message[1]) * 0.01;
 
       // Orientation received as yaw in unwrapped degree
       odometry.orientation.yaw = keisan::wrap_deg(stod(message[2]));
+
+      // Calculate odometry from the maneuver instead
+      {
+        const auto & maneuver = get_maneuver();
+
+        auto angle = keisan::deg_to_rad(odometry.orientation.yaw);
+
+        odometry.position.x += (maneuver.forward * cos(angle) - maneuver.left * sin(angle)) / 10000;
+        odometry.position.y += (maneuver.forward * sin(angle) + maneuver.left * cos(angle)) / 10000;
+      }
 
       set_odometry(odometry);
     } catch (const std::out_of_range & err) {
@@ -127,11 +138,11 @@ void Navigation::broadcast_process()
 {
   BroadcastMessage message;
 
-  auto maneuver = get_maneuver();
+  const auto & maneuver = get_maneuver();
 
-  message.left_maneuver = -maneuver.left / 5;
-  message.forward_maneuver = maneuver.forward / 5;
-  message.yaw_maneuver = maneuver.yaw / 5;
+  message.left_maneuver = -maneuver.left / 2;
+  message.forward_maneuver = maneuver.forward / 2;
+  message.yaw_maneuver = maneuver.yaw / 8;
 
   message.yaw_offset = 0;
   message.x_offset = 0;
