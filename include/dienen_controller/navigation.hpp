@@ -21,19 +21,39 @@
 #ifndef DIENEN_CONTROLLER__NAVIGATION_HPP_
 #define DIENEN_CONTROLLER__NAVIGATION_HPP_
 
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 #include <musen/musen.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <tosshin_cpp/tosshin_cpp.hpp>
 
 #include <memory>
+#include <optional>  // NOLINT
 #include <string>
 
 namespace dienen_controller
 {
 
-class Navigation : public tosshin_cpp::NavigationProvider
+using geometry_msgs::msg::Pose;
+using geometry_msgs::msg::Twist;
+using nav_msgs::msg::Odometry;
+
+class Navigation : public rclcpp::Node
 {
 public:
+  struct Options : public rclcpp::NodeOptions
+  {
+    Options();
+
+    std::string node_name;
+    std::string target_host;
+
+    int listen_port;
+    int broadcast_port;
+
+    bool position_from_twist;
+  };
+
   struct BroadcastMessage
   {
     char headers[3] = {'i', 't', 's'};
@@ -49,10 +69,7 @@ public:
     float x_offset;
   } __attribute__((packed, aligned(1)));
 
-  Navigation(
-    rclcpp::Node::SharedPtr node, std::string target_host,
-    int listen_port = 8888, int broadcast_port = 44444);
-
+  explicit Navigation(const Options & options = Options());
   ~Navigation();
 
   bool connect();
@@ -62,9 +79,17 @@ private:
   void listen_process();
   void broadcast_process();
 
-  std::shared_ptr<tosshin_cpp::NavigationProvider> navigation_provider;
+  Options options;
+
+  rclcpp::Subscription<Twist>::SharedPtr twist_subscription;
+  rclcpp::Publisher<Odometry>::SharedPtr odometry_publisher;
 
   rclcpp::TimerBase::SharedPtr update_timer;
+
+  std::optional<double> initial_yaw;
+
+  Pose current_pose;
+  Twist current_twist;
 
   std::shared_ptr<musen::Listener> listener;
   std::shared_ptr<musen::Broadcaster> broadcaster;
