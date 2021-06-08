@@ -20,6 +20,7 @@
 
 #include <dienen_controller/navigation.hpp>
 #include <keisan/keisan.hpp>
+#include <tf2/utils.h>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -42,11 +43,21 @@ Navigation::Options::Options()
 }
 
 Navigation::Navigation(const Options & options)
-: tosshin_cpp::NavigationProvider(std::make_shared<rclcpp::Node>(options.node_name, options))
+: rclcpp::Node(options.node_name, options)
 {
+  // Initialize the velocity subscription
+  twist_subscription = create_subscription<Twist>(
+    "/cmd_vel", 10,
+    [&](const Twist::SharedPtr msg) {
+      current_twist = *msg;
+    });
+
+  // Initialize the odometry publisher
+  odometry_publisher = create_publisher<Odometry>("/odom", 10);
+
   // Initialize the update timer
   {
-    update_timer = get_node()->create_wall_timer(
+    update_timer = create_wall_timer(
       10ms, [this]() {
         listen_process();
         broadcast_process();
@@ -60,7 +71,7 @@ Navigation::Navigation(const Options & options)
     listener = std::make_shared<musen::Listener>(options.listen_port);
 
     RCLCPP_INFO_STREAM(
-      get_node()->get_logger(),
+      get_logger(),
       "Listener initialized on port " << listener->get_port() << "!");
   }
 
@@ -73,7 +84,7 @@ Navigation::Navigation(const Options & options)
     broadcaster->enable_broadcast(false);
 
     RCLCPP_INFO_STREAM(
-      get_node()->get_logger(),
+      get_logger(),
       "Broadcaster initialized on port " << broadcaster->get_port() << "!");
   }
 }
@@ -86,7 +97,7 @@ Navigation::~Navigation()
 bool Navigation::connect()
 {
   if (!listener->connect()) {
-    RCLCPP_ERROR(get_node()->get_logger(), "Failed to connect the listener!");
+    RCLCPP_ERROR(get_logger(), "Failed to connect the listener!");
     return false;
   }
 
@@ -98,7 +109,7 @@ bool Navigation::connect()
 bool Navigation::disconnect()
 {
   if (!listener->disconnect()) {
-    RCLCPP_ERROR(get_node()->get_logger(), "Failed to disconnect the listener!");
+    RCLCPP_ERROR(get_logger(), "Failed to disconnect the listener!");
     return false;
   }
 
@@ -113,28 +124,46 @@ void Navigation::listen_process()
 
   if (message.size() > 0) {
     try {
-      auto odometry = get_odometry();
-
+      // Disabled, calculate pose from the maneuver instead
       // Position received as y, x in centimetre
+      // auto odometry = get_odometry();
       // odometry.position.y = stod(message[0]) * 0.01;
       // odometry.position.x = stod(message[1]) * 0.01;
 
-      // Orientation received as yaw in unwrapped degree
-      odometry.orientation.yaw = keisan::wrap_deg(stod(message[2]));
+      // Orientation received as yaw in degree
+      auto yaw = keisan::deg_to_rad(stod(message[2]));
 
-      // Calculate odometry from the maneuver instead
+      tf2::Quaternion orientation;
+      orientation.setEuler(yaw, 0.0, 0.0);
+
+      current_pose.orientation.x = orientation.x();
+      current_pose.orientation.y = orientation.y();
+      current_pose.orientation.z = orientation.z();
+      current_pose.orientation.w = orientation.w();
+
+      // Calculate pose from the maneuver instead
       {
-        const auto & maneuver = get_maneuver();
+        auto forward = current_twist.linear.x;
+        auto left = current_twist.linear.y;
 
-        auto angle = keisan::deg_to_rad(odometry.orientation.yaw);
-
-        odometry.position.x += (maneuver.forward * cos(angle) - maneuver.left * sin(angle)) / 10000;
-        odometry.position.y += (maneuver.forward * sin(angle) + maneuver.left * cos(angle)) / 10000;
+        current_pose.position.x += (forward * cos(yaw) - left * sin(yaw)) / 10000;
+        current_pose.position.y += (forward * sin(yaw) + left * cos(yaw)) / 10000;
       }
 
-      set_odometry(odometry);
+      // Publish odometry
+      {
+        Odometry odometry;
+
+        odometry.header.stamp = now();
+        odometry.header.frame_id = "odom";
+
+        odometry.pose.pose = current_pose;
+        odometry.twist.twist = current_twist;
+
+        odometry_publisher->publish(odometry);
+      }
     } catch (const std::out_of_range & err) {
-      RCLCPP_WARN_STREAM(get_node()->get_logger(), "Not all values are received! " << err.what());
+      RCLCPP_WARN_STREAM(get_logger(), "Not all values are received! " << err.what());
     }
   }
 }
@@ -143,11 +172,9 @@ void Navigation::broadcast_process()
 {
   BroadcastMessage message;
 
-  const auto & maneuver = get_maneuver();
-
-  message.left_maneuver = -maneuver.left / 2;
-  message.forward_maneuver = maneuver.forward / 2;
-  message.yaw_maneuver = maneuver.yaw / 8;
+  message.left_maneuver = -current_twist.linear.y;
+  message.forward_maneuver = current_twist.linear.x;
+  message.yaw_maneuver = current_twist.angular.z;
 
   message.yaw_offset = 0;
   message.x_offset = 0;

@@ -16,10 +16,15 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(argparse REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(keisan REQUIRED)
 find_package(musen REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(tf2 REQUIRED)
 find_package(tosshin_cpp REQUIRED)
+
+install(DIRECTORY "include" DESTINATION ".")
 
 add_library(${PROJECT_NAME}
   "src/navigation.cpp")
@@ -29,9 +34,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>)
 
 ament_target_dependencies(${PROJECT_NAME}
-  argparse keisan musen rclcpp tosshin_cpp)
-
-install(DIRECTORY "include" DESTINATION ".")
+  argparse geometry_msgs keisan musen nav_msgs rclcpp tf2 tosshin_cpp)
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
@@ -55,7 +58,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_export_dependencies(argparse keisan musen rclcpp tosshin_cpp)
+ament_export_dependencies(
+  argparse geometry_msgs keisan musen nav_msgs rclcpp tf2 tosshin_cpp)
+
 ament_export_include_directories("include")
 ament_export_libraries(${PROJECT_NAME})
 

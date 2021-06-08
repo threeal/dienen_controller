@@ -61,7 +61,7 @@ int main(int argc, char ** argv)
   auto navigation = std::make_shared<dienen_controller::Navigation>(navigation_options);
 
   if (navigation->connect()) {
-    rclcpp::spin(navigation->get_node());
+    rclcpp::spin(navigation);
   } else {
     std::cerr << "Failed to initialize the connection!" << std::endl;
   }
