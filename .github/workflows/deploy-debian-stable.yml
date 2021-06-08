@@ -10,7 +10,7 @@ jobs:
       - name: Checkout this repository
         uses: actions/checkout@v2.3.4
         with:
-          path: tosshin_dienen_controller
+          path: dienen_controller
 
       - name: Add stable Debian repository and rosdep sources list
         run: |
@@ -29,7 +29,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASS }}
           source: "package/*.deb"
-          target: "~/temp/stable/tosshin_dienen_controller/"
+          target: "~/temp/stable/dienen_controller/"
           rm: true
 
       - name: Prepare stable Debian package in the server
@@ -41,5 +41,5 @@ jobs:
           password: ${{ secrets.SSH_PASS }}
           script: |
             cd ~/repository/debian
-            reprepro includedeb stable ~/temp/stable/tosshin_dienen_controller/package/*.deb
-            rm -rf ~/temp/stable/tosshin_dienen_controller/
+            reprepro includedeb stable ~/temp/stable/dienen_controller/package/*.deb
+            rm -rf ~/temp/stable/dienen_controller/

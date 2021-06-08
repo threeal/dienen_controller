@@ -20,7 +20,7 @@
 
 #include <keisan/keisan.hpp>
 
-#include <tosshin_dienen_controller/navigation.hpp>
+#include <dienen_controller/navigation.hpp>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-namespace tosshin_dienen_controller
+namespace dienen_controller
 {
 
 using namespace std::chrono_literals;
@@ -52,7 +52,7 @@ Navigation::Navigation(
 
   // Initialize the listener
   {
-    listener = std::make_shared<musen::StringListener>(listen_port);
+    listener = std::make_shared<musen::Listener>(listen_port);
 
     RCLCPP_INFO_STREAM(
       get_node()->get_logger(),
@@ -61,8 +61,7 @@ Navigation::Navigation(
 
   // Initialize the broadcaster
   {
-    using Broadcaster = musen::Broadcaster<BroadcastMessage>;
-    broadcaster = std::make_shared<Broadcaster>(broadcast_port, listener->get_udp_socket());
+    broadcaster = std::make_shared<musen::Broadcaster>(broadcast_port, listener->get_udp_socket());
 
     broadcaster->add_target_host(target_host);
     broadcaster->enable_broadcast(false);
@@ -104,7 +103,7 @@ bool Navigation::disconnect()
 
 void Navigation::listen_process()
 {
-  auto message = listener->receive(64, ",");
+  auto message = listener->receive_strings(64, ",");
 
   if (message.size() > 0) {
     try {
@@ -151,4 +150,4 @@ void Navigation::broadcast_process()
   broadcaster->send(message);
 }
 
-}  // namespace tosshin_dienen_controller
+}  // namespace dienen_controller

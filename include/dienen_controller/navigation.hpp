@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef TOSSHIN_DIENEN_CONTROLLER__NAVIGATION_HPP_
-#define TOSSHIN_DIENEN_CONTROLLER__NAVIGATION_HPP_
+#ifndef DIENEN_CONTROLLER__NAVIGATION_HPP_
+#define DIENEN_CONTROLLER__NAVIGATION_HPP_
 
 #include <musen/musen.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -28,7 +28,7 @@
 #include <memory>
 #include <string>
 
-namespace tosshin_dienen_controller
+namespace dienen_controller
 {
 
 class Navigation : public tosshin_cpp::NavigationProvider
@@ -66,10 +66,10 @@ private:
 
   rclcpp::TimerBase::SharedPtr update_timer;
 
-  std::shared_ptr<musen::StringListener> listener;
-  std::shared_ptr<musen::Broadcaster<BroadcastMessage>> broadcaster;
+  std::shared_ptr<musen::Listener> listener;
+  std::shared_ptr<musen::Broadcaster> broadcaster;
 };
 
-}  // namespace tosshin_dienen_controller
+}  // namespace dienen_controller
 
-#endif  // TOSSHIN_DIENEN_CONTROLLER__NAVIGATION_HPP_
+#endif  // DIENEN_CONTROLLER__NAVIGATION_HPP_

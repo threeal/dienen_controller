@@ -10,7 +10,7 @@ jobs:
       - name: Checkout this repository
         uses: actions/checkout@v2.3.4
         with:
-          path: tosshin_dienen_controller
+          path: dienen_controller
 
       - name: Add nightly Debian repository and rosdep sources list
         run: |
@@ -31,7 +31,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASS }}
           source: "package/*.deb"
-          target: "~/temp/nightly/tosshin_dienen_controller/"
+          target: "~/temp/nightly/dienen_controller/"
           rm: true
 
       - name: Prepare nightly Debian package in the server
@@ -43,5 +43,5 @@ jobs:
           password: ${{ secrets.SSH_PASS }}
           script: |
             cd ~/repository/debian
-            reprepro includedeb nightly ~/temp/nightly/tosshin_dienen_controller/package/*.deb
-            rm -rf ~/temp/nightly/tosshin_dienen_controller/
+            reprepro includedeb nightly ~/temp/nightly/dienen_controller/package/*.deb
+            rm -rf ~/temp/nightly/dienen_controller/
