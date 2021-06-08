@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 #include <rclcpp/rclcpp.hpp>
-#include <tosshin_dienen_controller/navigation.hpp>
+#include <dienen_controller/navigation.hpp>
 
 #include <memory>
 #include <string>
@@ -30,18 +30,18 @@ int main(int argc, char ** argv)
 
   auto node = std::make_shared<rclcpp::Node>("navigation");
 
-  std::shared_ptr<tosshin_dienen_controller::Navigation> navigation;
+  std::shared_ptr<dienen_controller::Navigation> navigation;
   if (argc > 3) {
-    navigation = std::make_shared<tosshin_dienen_controller::Navigation>(
+    navigation = std::make_shared<dienen_controller::Navigation>(
       node, std::string(argv[1]), atoi(argv[2]), atoi(argv[3]));
   } else if (argc > 2) {
-    navigation = std::make_shared<tosshin_dienen_controller::Navigation>(
+    navigation = std::make_shared<dienen_controller::Navigation>(
       node, std::string(argv[1]), atoi(argv[2]));
   } else if (argc > 1) {
-    navigation = std::make_shared<tosshin_dienen_controller::Navigation>(
+    navigation = std::make_shared<dienen_controller::Navigation>(
       node, std::string(argv[1]));
   } else {
-    std::cerr << "Usage: ros2 run tosshin_dienen_controller navigation " <<
+    std::cerr << "Usage: ros2 run dienen_controller navigation " <<
       "<target_host> [listen_port] [broadcast_port]" << std::endl;
     return 1;
   }

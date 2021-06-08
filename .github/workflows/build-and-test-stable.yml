@@ -10,7 +10,7 @@ jobs:
       - name: Checkout this repository
         uses: actions/checkout@v2.3.4
         with:
-          path: tosshin_dienen_controller
+          path: dienen_controller
 
       - name: Add stable Debian repository and rosdep sources list
         run: |

@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>tosshin_dienen_controller</name>
+  <name>dienen_controller</name>
   <version>0.3.0</version>
-  <description>Dienen's controller implementation of Tosshin mobile robot navigation project</description>
+  <description>Controller programs of the Dienen mobile assistive robot</description>
   <maintainer email="alfi.maulana.f@gmail.com">Alfi Maulana</maintainer>
   <license>MIT License</license>
-  <url>https://github.com/threeal/tosshin_dienen_controller</url>
+  <url>https://github.com/threeal/dienen_controller</url>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>keisan</depend>
   <depend>musen</depend>

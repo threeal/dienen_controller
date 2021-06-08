@@ -20,7 +20,7 @@
 
 #include <keisan/keisan.hpp>
 
-#include <tosshin_dienen_controller/navigation.hpp>
+#include <dienen_controller/navigation.hpp>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -29,7 +29,7 @@
 #include <string>
 #include <vector>
 
-namespace tosshin_dienen_controller
+namespace dienen_controller
 {
 
 using namespace std::chrono_literals;
@@ -151,4 +151,4 @@ void Navigation::broadcast_process()
   broadcaster->send(message);
 }
 
-}  // namespace tosshin_dienen_controller
+}  // namespace dienen_controller
