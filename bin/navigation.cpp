@@ -18,8 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <rclcpp/rclcpp.hpp>
+#include <argparse/argparse.hpp>
 #include <dienen_controller/navigation.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 #include <memory>
 #include <string>
@@ -27,27 +28,37 @@
 
 int main(int argc, char ** argv)
 {
-  dienen_controller::Navigation::Options options;
+  auto program = argparse::ArgumentParser("navigation", "0.3.0");
 
-  if (argc < 2) {
-    std::cerr << "Usage: ros2 run dienen_controller navigation " <<
-      "<target_host> [listen_port] [broadcast_port]" << std::endl;
+  dienen_controller::Navigation::Options navigation_options;
+
+  program.add_argument("target_host")
+  .help("Target controller's host IP");
+
+  program.add_argument("--listen-port", "-l")
+  .help("Listen port from the target controller")
+  .default_value(navigation_options.listen_port)
+  .action([](const std::string & value) {return std::stoi(value);});
+
+  program.add_argument("--broadcast-port", "-b")
+  .help("Broadcast port to the target controller")
+  .default_value(navigation_options.broadcast_port)
+  .action([](const std::string & value) {return std::stoi(value);});
+
+  try {
+    program.parse_args(argc, argv);
+
+    navigation_options.target_host = program.get<std::string>("target_host");
+    navigation_options.listen_port = program.get<int>("--listen-port");
+    navigation_options.broadcast_port = program.get<int>("--broadcast-port");
+  } catch (const std::exception & e) {
+    std::cout << e.what() << std::endl << program;
     return 1;
-  } else {
-    options.target_host = argv[1];
-
-    if (argc > 2) {
-      options.listen_port = atoi(argv[2]);
-    }
-
-    if (argc > 3) {
-      options.broadcast_port = atoi(argv[3]);
-    }
   }
 
   rclcpp::init(argc, argv);
 
-  auto navigation = std::make_shared<dienen_controller::Navigation>(options);
+  auto navigation = std::make_shared<dienen_controller::Navigation>(navigation_options);
 
   if (navigation->connect()) {
     rclcpp::spin(navigation->get_node());

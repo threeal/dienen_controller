@@ -18,9 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <keisan/keisan.hpp>
-
 #include <dienen_controller/navigation.hpp>
+#include <keisan/keisan.hpp>
 
 #include <sys/socket.h>
 #include <unistd.h>
