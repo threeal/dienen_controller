@@ -134,7 +134,7 @@ void Navigation::listen_process()
       auto yaw = keisan::deg_to_rad(stod(message[2]));
 
       tf2::Quaternion orientation;
-      orientation.setEuler(yaw, 0.0, 0.0);
+      orientation.setRPY(0.0, 0.0, yaw);
 
       current_pose.orientation.x = orientation.x();
       current_pose.orientation.y = orientation.y();
