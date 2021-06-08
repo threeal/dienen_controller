@@ -34,10 +34,16 @@ namespace dienen_controller
 
 using namespace std::chrono_literals;
 
-Navigation::Navigation(
-  rclcpp::Node::SharedPtr node, std::string target_host,
-  int listen_port, int broadcast_port)
-: tosshin_cpp::NavigationProvider(node)
+Navigation::Options::Options()
+: node_name("navigation"),
+  target_host("169.254.183.100"),
+  listen_port(8888),
+  broadcast_port(44444)
+{
+}
+
+Navigation::Navigation(const Options & options)
+: tosshin_cpp::NavigationProvider(std::make_shared<rclcpp::Node>(options.node_name, options))
 {
   // Initialize the update timer
   {
@@ -52,7 +58,7 @@ Navigation::Navigation(
 
   // Initialize the listener
   {
-    listener = std::make_shared<musen::Listener>(listen_port);
+    listener = std::make_shared<musen::Listener>(options.listen_port);
 
     RCLCPP_INFO_STREAM(
       get_node()->get_logger(),
@@ -61,9 +67,10 @@ Navigation::Navigation(
 
   // Initialize the broadcaster
   {
-    broadcaster = std::make_shared<musen::Broadcaster>(broadcast_port, listener->get_udp_socket());
+    broadcaster = std::make_shared<musen::Broadcaster>(
+      options.broadcast_port, listener->get_udp_socket());
 
-    broadcaster->add_target_host(target_host);
+    broadcaster->add_target_host(options.target_host);
     broadcaster->enable_broadcast(false);
 
     RCLCPP_INFO_STREAM(

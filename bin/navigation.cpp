@@ -23,31 +23,34 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 int main(int argc, char ** argv)
 {
-  rclcpp::init(argc, argv);
+  dienen_controller::Navigation::Options options;
 
-  auto node = std::make_shared<rclcpp::Node>("navigation");
-
-  std::shared_ptr<dienen_controller::Navigation> navigation;
-  if (argc > 3) {
-    navigation = std::make_shared<dienen_controller::Navigation>(
-      node, std::string(argv[1]), atoi(argv[2]), atoi(argv[3]));
-  } else if (argc > 2) {
-    navigation = std::make_shared<dienen_controller::Navigation>(
-      node, std::string(argv[1]), atoi(argv[2]));
-  } else if (argc > 1) {
-    navigation = std::make_shared<dienen_controller::Navigation>(
-      node, std::string(argv[1]));
-  } else {
+  if (argc < 2) {
     std::cerr << "Usage: ros2 run dienen_controller navigation " <<
       "<target_host> [listen_port] [broadcast_port]" << std::endl;
     return 1;
+  } else {
+    options.target_host = argv[1];
+
+    if (argc > 2) {
+      options.listen_port = atoi(argv[2]);
+    }
+
+    if (argc > 3) {
+      options.broadcast_port = atoi(argv[3]);
+    }
   }
 
+  rclcpp::init(argc, argv);
+
+  auto navigation = std::make_shared<dienen_controller::Navigation>(options);
+
   if (navigation->connect()) {
-    rclcpp::spin(node);
+    rclcpp::spin(navigation->get_node());
   } else {
     std::cerr << "Failed to initialize the connection!" << std::endl;
   }

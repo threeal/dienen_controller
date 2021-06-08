@@ -34,6 +34,16 @@ namespace dienen_controller
 class Navigation : public tosshin_cpp::NavigationProvider
 {
 public:
+  struct Options : public rclcpp::NodeOptions
+  {
+    Options();
+
+    std::string node_name;
+    std::string target_host;
+    int listen_port;
+    int broadcast_port;
+  };
+
   struct BroadcastMessage
   {
     char headers[3] = {'i', 't', 's'};
@@ -49,10 +59,7 @@ public:
     float x_offset;
   } __attribute__((packed, aligned(1)));
 
-  Navigation(
-    rclcpp::Node::SharedPtr node, std::string target_host,
-    int listen_port = 8888, int broadcast_port = 44444);
-
+  explicit Navigation(const Options & options = Options());
   ~Navigation();
 
   bool connect();
