@@ -26,7 +26,6 @@
 #include <musen/musen.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <tosshin_cpp/tosshin_cpp.hpp>
 
 #include <memory>
 #include <string>

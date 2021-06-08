@@ -22,7 +22,7 @@ find_package(musen REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
-find_package(tosshin_cpp REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 install(DIRECTORY "include" DESTINATION ".")
 
@@ -34,7 +34,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>)
 
 ament_target_dependencies(${PROJECT_NAME}
-  argparse geometry_msgs keisan musen nav_msgs rclcpp tf2 tosshin_cpp)
+  argparse geometry_msgs keisan musen nav_msgs rclcpp tf2 tf2_geometry_msgs)
 
 install(TARGETS ${PROJECT_NAME}
   EXPORT export_${PROJECT_NAME}
@@ -59,7 +59,7 @@ if(BUILD_TESTING)
 endif()
 
 ament_export_dependencies(
-  argparse geometry_msgs keisan musen nav_msgs rclcpp tf2 tosshin_cpp)
+  argparse geometry_msgs keisan musen nav_msgs rclcpp tf2 tf2_geometry_msgs)
 
 ament_export_include_directories("include")
 ament_export_libraries(${PROJECT_NAME})
