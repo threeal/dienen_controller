@@ -47,8 +47,11 @@ public:
 
     std::string node_name;
     std::string target_host;
+
     int listen_port;
     int broadcast_port;
+
+    bool position_from_twist;
   };
 
   struct BroadcastMessage
@@ -75,6 +78,8 @@ public:
 private:
   void listen_process();
   void broadcast_process();
+
+  Options options;
 
   rclcpp::Subscription<Twist>::SharedPtr twist_subscription;
   rclcpp::Publisher<Odometry>::SharedPtr odometry_publisher;

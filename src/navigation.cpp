@@ -37,12 +37,14 @@ Navigation::Options::Options()
 : node_name("navigation"),
   target_host("169.254.183.100"),
   listen_port(8888),
-  broadcast_port(44444)
+  broadcast_port(44444),
+  position_from_twist(false)
 {
 }
 
 Navigation::Navigation(const Options & options)
-: rclcpp::Node(options.node_name, options)
+: rclcpp::Node(options.node_name, options),
+  options(options)
 {
   // Initialize the velocity subscription
   twist_subscription = create_subscription<Twist>(
@@ -123,34 +125,40 @@ void Navigation::listen_process()
 
   if (message.size() > 0) {
     try {
-      // Disabled, calculate pose from the maneuver instead
-      // Position received as y, x in centimetre
-      // auto odometry = get_odometry();
-      // odometry.position.y = stod(message[0]) * 0.01;
-      // odometry.position.x = stod(message[1]) * 0.01;
+      // Obtains orientation
+      {
+        // Orientation received as yaw in degree
+        auto yaw = tf2Radians(stod(message[2]));
 
-      // Orientation received as yaw in degree
-      auto yaw = tf2Radians(stod(message[2]));
+        // Shift yaw from the initial yaw
+        if (initial_yaw.has_value()) {
+          yaw -= initial_yaw.value();
+        } else {
+          initial_yaw = std::make_optional<double>(yaw);
+        }
 
-      // Shift yaw from the initial yaw
-      if (initial_yaw.has_value()) {
-        yaw -= initial_yaw.value();
-      } else {
-        initial_yaw = std::make_optional<double>(yaw);
+        tf2::Quaternion orientation;
+        orientation.setRPY(0.0, 0.0, tf2NormalizeAngle(yaw));
+
+        tf2::convert(orientation, current_pose.orientation);
       }
 
-      tf2::Quaternion orientation;
-      orientation.setRPY(0.0, 0.0, tf2NormalizeAngle(yaw));
-
-      tf2::convert(orientation, current_pose.orientation);
-
-      // Calculate pose from the maneuver instead
+      // Obtains position
       {
-        auto forward = current_twist.linear.x;
-        auto left = current_twist.linear.y;
+        if (options.position_from_twist) {
+          double yaw, pitch, roll;
+          tf2::getEulerYPR(current_pose.orientation, yaw, pitch, roll);
 
-        current_pose.position.x += (forward * cos(yaw) - left * sin(yaw)) / 10000;
-        current_pose.position.y += (forward * sin(yaw) + left * cos(yaw)) / 10000;
+          auto forward = current_twist.linear.x;
+          auto left = current_twist.linear.y;
+
+          current_pose.position.x += (forward * cos(yaw) - left * sin(yaw)) / 10000;
+          current_pose.position.y += (forward * sin(yaw) + left * cos(yaw)) / 10000;
+        } else {
+          // Position received as y, x in meter
+          current_pose.position.y = stod(message[0]) * 0.01;
+          current_pose.position.x = stod(message[1]) * 0.01;
+        }
       }
 
       // Publish odometry

@@ -33,17 +33,22 @@ int main(int argc, char ** argv)
   dienen_controller::Navigation::Options navigation_options;
 
   program.add_argument("target_host")
-  .help("Target controller's host IP");
+  .help("target host IP of the controller");
 
   program.add_argument("--listen-port", "-l")
-  .help("Listen port from the target controller")
+  .help("listen port to be used")
   .default_value(navigation_options.listen_port)
   .action([](const std::string & value) {return std::stoi(value);});
 
   program.add_argument("--broadcast-port", "-b")
-  .help("Broadcast port to the target controller")
+  .help("broadcast port to be used")
   .default_value(navigation_options.broadcast_port)
   .action([](const std::string & value) {return std::stoi(value);});
+
+  program.add_argument("--position-from-twist")
+  .help("obtains position from twist movement calculation")
+  .default_value(false)
+  .implicit_value(true);
 
   try {
     program.parse_args(argc, argv);
@@ -51,6 +56,7 @@ int main(int argc, char ** argv)
     navigation_options.target_host = program.get<std::string>("target_host");
     navigation_options.listen_port = program.get<int>("--listen-port");
     navigation_options.broadcast_port = program.get<int>("--broadcast-port");
+    navigation_options.position_from_twist = program.get<bool>("--position-from-twist");
   } catch (const std::exception & e) {
     std::cout << e.what() << std::endl << program;
     return 1;
