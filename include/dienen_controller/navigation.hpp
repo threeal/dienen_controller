@@ -66,8 +66,8 @@ private:
 
   rclcpp::TimerBase::SharedPtr update_timer;
 
-  std::shared_ptr<musen::StringListener> listener;
-  std::shared_ptr<musen::Broadcaster<BroadcastMessage>> broadcaster;
+  std::shared_ptr<musen::Listener> listener;
+  std::shared_ptr<musen::Broadcaster> broadcaster;
 };
 
 }  // namespace dienen_controller
