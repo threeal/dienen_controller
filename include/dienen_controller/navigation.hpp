@@ -28,6 +28,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <memory>
+#include <optional>  // NOLINT
 #include <string>
 
 namespace dienen_controller
@@ -79,6 +80,8 @@ private:
   rclcpp::Publisher<Odometry>::SharedPtr odometry_publisher;
 
   rclcpp::TimerBase::SharedPtr update_timer;
+
+  std::optional<double> initial_yaw;
 
   Pose current_pose;
   Twist current_twist;

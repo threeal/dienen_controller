@@ -133,13 +133,17 @@ void Navigation::listen_process()
       // Orientation received as yaw in degree
       auto yaw = keisan::deg_to_rad(stod(message[2]));
 
+      // Shift yaw from the initial yaw
+      if (initial_yaw.has_value()) {
+        yaw -= initial_yaw.value();
+      } else {
+        initial_yaw = std::make_optional<double>(yaw);
+      }
+
       tf2::Quaternion orientation;
       orientation.setRPY(0.0, 0.0, yaw);
 
-      current_pose.orientation.x = orientation.x();
-      current_pose.orientation.y = orientation.y();
-      current_pose.orientation.z = orientation.z();
-      current_pose.orientation.w = orientation.w();
+      tf2::convert(orientation, current_pose.orientation);
 
       // Calculate pose from the maneuver instead
       {
