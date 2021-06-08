@@ -19,7 +19,6 @@
 // THE SOFTWARE.
 
 #include <dienen_controller/navigation.hpp>
-#include <keisan/keisan.hpp>
 #include <tf2/utils.h>
 
 #include <sys/socket.h>
@@ -131,7 +130,7 @@ void Navigation::listen_process()
       // odometry.position.x = stod(message[1]) * 0.01;
 
       // Orientation received as yaw in degree
-      auto yaw = keisan::deg_to_rad(stod(message[2]));
+      auto yaw = tf2Radians(stod(message[2]));
 
       // Shift yaw from the initial yaw
       if (initial_yaw.has_value()) {
@@ -141,7 +140,7 @@ void Navigation::listen_process()
       }
 
       tf2::Quaternion orientation;
-      orientation.setRPY(0.0, 0.0, yaw);
+      orientation.setRPY(0.0, 0.0, tf2NormalizeAngle(yaw));
 
       tf2::convert(orientation, current_pose.orientation);
 
