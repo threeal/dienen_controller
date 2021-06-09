@@ -127,7 +127,7 @@ void Navigation::listen_process()
     try {
       // Obtains orientation
       {
-        // Orientation received as yaw in degree
+        // Orientation received as an inverted yaw in degree
         auto yaw = tf2Radians(stod(message[2]));
 
         // Shift yaw from the initial yaw
@@ -185,7 +185,7 @@ void Navigation::broadcast_process()
 
   message.left_maneuver = -current_twist.linear.y;
   message.forward_maneuver = current_twist.linear.x;
-  message.yaw_maneuver = current_twist.angular.z;
+  message.yaw_maneuver = current_twist.angular.z * 13.5;
 
   message.yaw_offset = 0;
   message.x_offset = 0;
