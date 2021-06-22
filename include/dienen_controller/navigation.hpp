@@ -52,6 +52,7 @@ public:
     int broadcast_port;
 
     bool position_from_twist;
+    bool no_reset_odometry;
   };
 
   struct BroadcastMessage

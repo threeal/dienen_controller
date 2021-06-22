@@ -130,11 +130,13 @@ void Navigation::listen_process()
         // Orientation received as an inverted yaw in degree
         auto yaw = tf2Radians(stod(message[2]));
 
-        // Shift yaw from the initial yaw
-        if (initial_yaw.has_value()) {
-          yaw -= initial_yaw.value();
-        } else {
-          initial_yaw = std::make_optional<double>(yaw);
+        // Shift yaw from the initial yaw if enabled
+        if (!options.no_reset_odometry) {
+          if (initial_yaw.has_value()) {
+            yaw -= initial_yaw.value();
+          } else {
+            initial_yaw = std::make_optional<double>(yaw);
+          }
         }
 
         tf2::Quaternion orientation;
