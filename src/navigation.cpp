@@ -157,9 +157,9 @@ void Navigation::listen_process()
           current_pose.position.x += (forward * cos(yaw) - left * sin(yaw)) * 0.01;
           current_pose.position.y += (forward * sin(yaw) + left * cos(yaw)) * 0.01;
         } else {
-          // Position received as y, x in meter
-          current_pose.position.y = stod(message[0]);
-          current_pose.position.x = stod(message[1]);
+          // Position received as y, x in centimetre
+          current_pose.position.y = stod(message[0]) * 0.01;
+          current_pose.position.x = stod(message[1]) * 0.01;
         }
       }
 
