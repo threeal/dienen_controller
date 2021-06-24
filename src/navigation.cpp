@@ -151,6 +151,15 @@ void Navigation::listen_process()
           current_pos.y = stod(message[0]) * 0.01;
           current_pos.x = stod(message[1]) * 0.01;
         }
+
+        // Shift pos from the initial pos if enabled
+        if (!options.no_reset_odometry) {
+          if (!initial_pos.has_value()) {
+            initial_pos = std::make_optional(current_pos);
+          }
+
+          current_pos = current_pos.translate(-initial_pos.value()).rotate(-initial_yaw.value());
+        }
       }
 
       // Publish odometry

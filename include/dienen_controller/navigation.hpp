@@ -86,6 +86,7 @@ private:
 
   rclcpp::TimerBase::SharedPtr update_timer;
 
+  std::optional<keisan::Point2> initial_pos;
   std::optional<keisan::Angle> initial_yaw;
 
   keisan::Point2 current_pos;
