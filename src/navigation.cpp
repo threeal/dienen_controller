@@ -19,7 +19,6 @@
 // THE SOFTWARE.
 
 #include <dienen_controller/navigation.hpp>
-#include <tf2/utils.h>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -44,7 +43,9 @@ Navigation::Options::Options()
 
 Navigation::Navigation(const Options & options)
 : rclcpp::Node(options.node_name, options),
-  options(options)
+  options(options),
+  current_pos(keisan::Point2::zero()),
+  current_yaw(keisan::make_degree(0.0))
 {
   // Initialize the velocity subscription
   twist_subscription = create_subscription<Twist>(
@@ -127,39 +128,28 @@ void Navigation::listen_process()
     try {
       // Obtains orientation
       {
-        // Orientation received as an inverted yaw in degree
-        auto yaw = tf2Radians(stod(message[2]));
+        // Orientation received as a yaw in degree
+        current_yaw = keisan::make_degree(stod(message[2])).normalize();
 
         // Shift yaw from the initial yaw if enabled
         if (!options.no_reset_odometry) {
-          if (initial_yaw.has_value()) {
-            yaw -= initial_yaw.value();
-          } else {
-            initial_yaw = std::make_optional<double>(yaw);
+          if (!initial_yaw.has_value()) {
+            initial_yaw = std::make_optional(current_yaw);
           }
+
+          current_yaw = initial_yaw.value().difference_to(current_yaw);
         }
-
-        tf2::Quaternion orientation;
-        orientation.setRPY(0.0, 0.0, tf2NormalizeAngle(yaw));
-
-        tf2::convert(orientation, current_pose.orientation);
       }
 
       // Obtains position
       {
         if (options.position_from_twist) {
-          double yaw, pitch, roll;
-          tf2::getEulerYPR(current_pose.orientation, yaw, pitch, roll);
-
-          auto forward = current_twist.linear.x;
-          auto left = current_twist.linear.y;
-
-          current_pose.position.x += (forward * cos(yaw) - left * sin(yaw)) * 0.01;
-          current_pose.position.y += (forward * sin(yaw) + left * cos(yaw)) * 0.01;
+          auto velocity = keisan::Point2(current_twist.linear.x, current_twist.linear.y);
+          current_pos += velocity.scale(0.01).rotate(current_yaw);
         } else {
           // Position received as y, x in centimetre
-          current_pose.position.y = stod(message[0]) * 0.01;
-          current_pose.position.x = stod(message[1]) * 0.01;
+          current_pos.y = stod(message[0]) * 0.01;
+          current_pos.x = stod(message[1]) * 0.01;
         }
       }
 
@@ -170,7 +160,18 @@ void Navigation::listen_process()
         odometry.header.stamp = now();
         odometry.header.frame_id = "odom";
 
-        odometry.pose.pose = current_pose;
+        odometry.pose.pose.position.x = current_pos.x;
+        odometry.pose.pose.position.y = current_pos.y;
+        odometry.pose.pose.position.z = 0.0;
+
+        auto quaternion = keisan::EulerAngles(
+          keisan::make_degree(0.0), keisan::make_degree(0.0), current_yaw).quaternion();
+
+        odometry.pose.pose.orientation.x = quaternion.x;
+        odometry.pose.pose.orientation.y = quaternion.y;
+        odometry.pose.pose.orientation.z = quaternion.z;
+        odometry.pose.pose.orientation.w = quaternion.w;
+
         odometry.twist.twist = current_twist;
 
         odometry_publisher->publish(odometry);

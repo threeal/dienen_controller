@@ -21,8 +21,8 @@
 #ifndef DIENEN_CONTROLLER__NAVIGATION_HPP_
 #define DIENEN_CONTROLLER__NAVIGATION_HPP_
 
-#include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <keisan/keisan.hpp>
 #include <musen/musen.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -34,7 +34,6 @@
 namespace dienen_controller
 {
 
-using geometry_msgs::msg::Pose;
 using geometry_msgs::msg::Twist;
 using nav_msgs::msg::Odometry;
 
@@ -87,9 +86,11 @@ private:
 
   rclcpp::TimerBase::SharedPtr update_timer;
 
-  std::optional<double> initial_yaw;
+  std::optional<keisan::Angle> initial_yaw;
 
-  Pose current_pose;
+  keisan::Point2 current_pos;
+  keisan::Angle current_yaw;
+
   Twist current_twist;
 
   std::shared_ptr<musen::Listener> listener;
