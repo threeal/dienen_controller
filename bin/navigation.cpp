@@ -50,6 +50,11 @@ int main(int argc, char ** argv)
   .default_value(false)
   .implicit_value(true);
 
+  program.add_argument("--no-reset-odometry")
+  .help("disable reset odometry on start")
+  .default_value(false)
+  .implicit_value(true);
+
   try {
     program.parse_args(argc, argv);
 
@@ -57,6 +62,7 @@ int main(int argc, char ** argv)
     navigation_options.listen_port = program.get<int>("--listen-port");
     navigation_options.broadcast_port = program.get<int>("--broadcast-port");
     navigation_options.position_from_twist = program.get<bool>("--position-from-twist");
+    navigation_options.no_reset_odometry = program.get<bool>("--no-reset-odometry");
   } catch (const std::exception & e) {
     std::cout << e.what() << std::endl << program;
     return 1;
