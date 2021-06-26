@@ -10,4 +10,4 @@ This package provides controller programs of the [Dienen](https://github.com/thr
 
 ## License
 
-This project is licensed under the [MIT License](./LICENSE).
+This project is licensed under the [MIT license](./LICENSE).

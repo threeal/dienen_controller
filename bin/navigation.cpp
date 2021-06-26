@@ -26,11 +26,13 @@
 #include <string>
 #include <vector>
 
+namespace dc = dienen_controller;
+
 int main(int argc, char ** argv)
 {
   auto program = argparse::ArgumentParser("navigation", "0.3.0");
 
-  dienen_controller::Navigation::Options navigation_options;
+  dc::Navigation::Options navigation_options;
 
   program.add_argument("target_host")
   .help("target host IP of the controller");
@@ -70,7 +72,7 @@ int main(int argc, char ** argv)
 
   rclcpp::init(argc, argv);
 
-  auto navigation = std::make_shared<dienen_controller::Navigation>(navigation_options);
+  auto navigation = std::make_shared<dc::Navigation>(navigation_options);
 
   if (navigation->connect()) {
     rclcpp::spin(navigation);
