@@ -21,11 +21,10 @@
 #ifndef DIENEN_CONTROLLER__NAVIGATION_HPP_
 #define DIENEN_CONTROLLER__NAVIGATION_HPP_
 
-#include <geometry_msgs/msg/twist.hpp>
 #include <keisan/keisan.hpp>
 #include <musen/musen.hpp>
-#include <nav_msgs/msg/odometry.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <tosshin/tosshin.hpp>
 
 #include <memory>
 #include <optional>  // NOLINT
@@ -33,9 +32,6 @@
 
 namespace dienen_controller
 {
-
-using geometry_msgs::msg::Twist;
-using nav_msgs::msg::Odometry;
 
 class Navigation : public rclcpp::Node
 {
@@ -81,8 +77,8 @@ private:
 
   Options options;
 
-  rclcpp::Subscription<Twist>::SharedPtr twist_subscription;
-  rclcpp::Publisher<Odometry>::SharedPtr odometry_publisher;
+  rclcpp::Subscription<tosshin::msg::Twist>::SharedPtr twist_subscription;
+  rclcpp::Publisher<tosshin::msg::Odometry>::SharedPtr odometry_publisher;
 
   rclcpp::TimerBase::SharedPtr update_timer;
 
@@ -92,7 +88,7 @@ private:
   keisan::Point2 current_pos;
   keisan::Angle current_yaw;
 
-  Twist current_twist;
+  tosshin::msg::Twist current_twist;
 
   std::shared_ptr<musen::Listener> listener;
   std::shared_ptr<musen::Broadcaster> broadcaster;

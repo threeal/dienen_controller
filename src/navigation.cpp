@@ -27,6 +27,9 @@
 #include <string>
 #include <vector>
 
+namespace tsn = tosshin;
+namespace ksn = keisan;
+
 namespace dienen_controller
 {
 
@@ -44,18 +47,18 @@ Navigation::Options::Options()
 Navigation::Navigation(const Options & options)
 : rclcpp::Node(options.node_name, options),
   options(options),
-  current_pos(keisan::Point2::zero()),
-  current_yaw(keisan::make_degree(0.0))
+  current_pos(ksn::Point2::zero()),
+  current_yaw(ksn::make_degree(0.0))
 {
   // Initialize the velocity subscription
-  twist_subscription = create_subscription<Twist>(
+  twist_subscription = create_subscription<tsn::msg::Twist>(
     "/cmd_vel", 10,
-    [&](const Twist::SharedPtr msg) {
+    [&](const tsn::msg::Twist::SharedPtr msg) {
       current_twist = *msg;
     });
 
   // Initialize the odometry publisher
-  odometry_publisher = create_publisher<Odometry>("/odom", 10);
+  odometry_publisher = create_publisher<tsn::msg::Odometry>("/odom", 10);
 
   // Initialize the update timer
   {
@@ -129,7 +132,7 @@ void Navigation::listen_process()
       // Obtains orientation
       {
         // Orientation received as a yaw in degree
-        current_yaw = keisan::make_degree(stod(message[2])).normalize();
+        current_yaw = ksn::make_degree(stod(message[2])).normalize();
 
         // Shift yaw from the initial yaw if enabled
         if (!options.no_reset_odometry) {
@@ -144,7 +147,7 @@ void Navigation::listen_process()
       // Obtains position
       {
         if (options.position_from_twist) {
-          auto velocity = keisan::Point2(current_twist.linear.x, current_twist.linear.y);
+          auto velocity = ksn::Point2(current_twist.linear.x, current_twist.linear.y);
           current_pos += velocity.scale(0.01).rotate(current_yaw);
         } else {
           // Position received as y, x in centimetre
@@ -164,22 +167,15 @@ void Navigation::listen_process()
 
       // Publish odometry
       {
-        Odometry odometry;
+        tsn::msg::Odometry odometry;
 
         odometry.header.stamp = now();
         odometry.header.frame_id = "odom";
 
-        odometry.pose.pose.position.x = current_pos.x;
-        odometry.pose.pose.position.y = current_pos.y;
-        odometry.pose.pose.position.z = 0.0;
+        odometry.pose.pose.position = tsn::make_point_xy(current_pos);
 
-        auto quaternion = keisan::EulerAngles(
-          keisan::make_degree(0.0), keisan::make_degree(0.0), current_yaw).quaternion();
-
-        odometry.pose.pose.orientation.x = quaternion.x;
-        odometry.pose.pose.orientation.y = quaternion.y;
-        odometry.pose.pose.orientation.z = quaternion.z;
-        odometry.pose.pose.orientation.w = quaternion.w;
+        auto euler = ksn::EulerAngles(ksn::make_degree(0.0), ksn::make_degree(0.0), current_yaw);
+        odometry.pose.pose.orientation = tsn::make_quaternion(euler.quaternion());
 
         odometry.twist.twist = current_twist;
 
